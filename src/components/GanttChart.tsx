@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Project } from '../lib/types';
+import { useState, useEffect, useRef } from 'react';
+import { Project, ProjectStatus, ProjectPriority } from '../lib/types';
+import { format } from 'date-fns';
 
 interface GanttChartProps {
   projects: Project[];
@@ -11,6 +12,17 @@ export default function GanttChart({ projects }: GanttChartProps) {
   const [timeRange, setTimeRange] = useState<'month' | 'quarter' | 'year'>('month');
   const [startDate, setStartDate] = useState<Date>(new Date());
   const [dateHeaders, setDateHeaders] = useState<Date[]>([]);
+  const [expandedProjectId, setExpandedProjectId] = useState<string | null>(null);
+  const [hoveredProjectId, setHoveredProjectId] = useState<string | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
+  const [zoomedProjectId, setZoomedProjectId] = useState<string | null>(null);
+  const chartRef = useRef<HTMLDivElement>(null);
+  
+  // Filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'all'>('all');
+  const [priorityFilter, setPriorityFilter] = useState<ProjectPriority | 'all'>('all');
+  const [showFilters, setShowFilters] = useState(false);
 
   // Prepare the date headers based on the selected time range
   useEffect(() => {
@@ -83,19 +95,30 @@ export default function GanttChart({ projects }: GanttChartProps) {
 
   // Calculate position and width for a project bar
   const getProjectBarStyle = (project: Project) => {
-    const projectDate = new Date(project.dueDate);
+    const projectStartDate = new Date(project.startDate);
+    const projectEndDate = new Date(project.dueDate);
     
-    // For simplicity, we're just using the due date for position
-    // In a real app, you'd use both start and end dates
-    
-    // Find the closest date header for positioning
-    const closestHeaderIndex = dateHeaders.findIndex(date => 
-      date.getTime() >= projectDate.getTime()
+    // Find the position based on start date
+    const startIndex = dateHeaders.findIndex(date => 
+      date.getTime() >= projectStartDate.getTime()
     );
     
-    const position = closestHeaderIndex !== -1 
-      ? closestHeaderIndex / dateHeaders.length * 100 
-      : 90; // Default to near end if not found
+    // Find the position based on end date
+    const endIndex = dateHeaders.findIndex(date => 
+      date.getTime() >= projectEndDate.getTime()
+    );
+    
+    // Calculate positions as percentages of the timeline
+    const startPosition = startIndex !== -1 
+      ? startIndex / dateHeaders.length * 100 
+      : 0; // Default to start if not found
+    
+    const endPosition = endIndex !== -1 
+      ? endIndex / dateHeaders.length * 100 
+      : 95; // Default to near end if not found
+    
+    // Calculate width based on duration
+    const barWidth = Math.max(endPosition - startPosition, 3); // Minimum 3% width for visibility
     
     // Calculate completion based on tasks
     const completedTasks = project.tasks.filter(t => t.completed).length;
@@ -114,11 +137,26 @@ export default function GanttChart({ projects }: GanttChartProps) {
     }
     
     return {
-      left: `${Math.min(position, 95)}%`,
-      width: '5%', // Fixed width for simplicity
+      left: `${Math.min(startPosition, 95)}%`,
+      width: `${Math.min(barWidth, 95)}%`,
       completion,
       barColor
     };
+  };
+
+  // Calculate the position of today's date on the timeline
+  const getTodayPosition = () => {
+    const today = new Date();
+    
+    // Find the index of the date header closest to today
+    const todayIndex = dateHeaders.findIndex(date => 
+      date.getTime() >= today.getTime()
+    );
+    
+    // Calculate position as percentage
+    return todayIndex !== -1 
+      ? todayIndex / dateHeaders.length * 100 
+      : null; // Return null if today is not in the visible range
   };
 
   // Navigate to previous/next time period
@@ -146,11 +184,198 @@ export default function GanttChart({ projects }: GanttChartProps) {
     setStartDate(newDate);
   };
 
+  // Helper to update project dates (simulate for demo)
+  const handleBarDrag = (projectId: string, newStart: Date, newEnd: Date) => {
+    // For demo: just log or update local state if needed
+    // In real app, call onUpdateProject
+  };
+
+  // Zoom to a specific project's timeline
+  const zoomToProject = (projectId: string | null) => {
+    // If null, reset to default view
+    if (projectId === null) {
+      setZoomedProjectId(null);
+      setStartDate(new Date()); // Reset to current month
+      setTimeRange('month'); // Reset to month view
+      return;
+    }
+    
+    // Find the project to zoom to
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return;
+    
+    const projectStart = new Date(project.startDate);
+    const projectEnd = new Date(project.dueDate);
+    
+    // Calculate the duration in days
+    const durationDays = Math.ceil((projectEnd.getTime() - projectStart.getTime()) / (1000 * 60 * 60 * 24));
+    
+    // Choose an appropriate time range based on duration
+    if (durationDays <= 31) {
+      setTimeRange('month');
+      
+      // Set start date to the beginning of the project's month
+      const startOfMonth = new Date(projectStart);
+      startOfMonth.setDate(1);
+      setStartDate(startOfMonth);
+    } else if (durationDays <= 90) {
+      setTimeRange('quarter');
+      
+      // Set start date to the beginning of the quarter
+      const quarterStart = new Date(projectStart);
+      quarterStart.setDate(1);
+      quarterStart.setMonth(Math.floor(quarterStart.getMonth() / 3) * 3); // Round to quarter start
+      setStartDate(quarterStart);
+    } else {
+      setTimeRange('year');
+      
+      // Set start date to the beginning of the year
+      const yearStart = new Date(projectStart);
+      yearStart.setMonth(0);
+      yearStart.setDate(1);
+      setStartDate(yearStart);
+    }
+    
+    setZoomedProjectId(projectId);
+    
+    // Expand the project if it's not already expanded
+    if (expandedProjectId !== projectId) {
+      setExpandedProjectId(projectId);
+    }
+  };
+
+  // Helper to render project bar (with drag/resize, tooltip)
+  const renderProjectBar = (project: Project, isTask = false, parentPosition?: string) => {
+    const { left, width, completion, barColor } = getProjectBarStyle(project);
+    
+    // Task bars should be positioned relative to the parent project's timeframe
+    const positionStyle = parentPosition ? { left: parentPosition, width: '100%' } : { left, width };
+    
+    const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const chartRect = chartRef.current?.getBoundingClientRect() || { left: 0, top: 0 };
+      
+      // Calculate tooltip position
+      const top = rect.top - chartRect.top + rect.height + 8; // 8px below the bar
+      const left = rect.left - chartRect.left + (rect.width / 2);
+      
+      setTooltipPosition({ top, left });
+      setHoveredProjectId(project.id);
+    };
+    
+    const isZoomed = zoomedProjectId === project.id;
+    
+    return (
+      <div
+        className={`absolute h-6 rounded ${barColor} opacity-80 transition-all duration-300 shadow-sm cursor-default group ${isTask ? 'h-4' : 'h-6'} z-20 
+          ${isZoomed ? 'ring-2 ring-blue-400 dark:ring-blue-500 ring-offset-2 ring-offset-white dark:ring-offset-gray-800' : ''}`}
+        style={positionStyle}
+        title={project.name}
+        tabIndex={0}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={() => setHoveredProjectId(null)}
+        role="region"
+        aria-label={`Project timeline for ${project.name}`}
+      >
+        {/* Progress overlay */}
+        <div
+          className="h-full bg-white dark:bg-gray-900 opacity-60 rounded"
+          style={{ width: `${100 - completion}%` }}
+        ></div>
+        {/* Progress label */}
+        <span className="absolute left-1 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-900 dark:text-white">
+          {Math.round(completion)}%
+        </span>
+        
+        {/* Only show zoom buttons on main project bars, not tasks */}
+        {!isTask && (
+          <div className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+            {isZoomed ? (
+              <button 
+                onClick={(e) => { 
+                  e.stopPropagation();
+                  zoomToProject(null);
+                }}
+                className="bg-gray-700/70 hover:bg-gray-600 text-white p-1 rounded"
+                title="Reset timeline view"
+                aria-label="Reset timeline view"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 3h18v18H3z" />
+                </svg>
+              </button>
+            ) : (
+              <button 
+                onClick={(e) => { 
+                  e.stopPropagation();
+                  zoomToProject(project.id);
+                }}
+                className="bg-blue-600/70 hover:bg-blue-500 text-white p-1 rounded"
+                title="Zoom to this project's timeline"
+                aria-label="Zoom to this project's timeline"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M11 8L20 8 20 17" />
+                  <path d="M4 4L20 20" />
+                </svg>
+              </button>
+            )}
+          </div>
+        )}
+        
+        {/* Drag/resize handles (visual only for demo) */}
+        <div className="absolute left-0 top-0 h-full w-2 bg-black/10 cursor-ew-resize rounded-l group-hover:bg-blue-400" />
+        <div className="absolute right-0 top-0 h-full w-2 bg-black/10 cursor-ew-resize rounded-r group-hover:bg-blue-400" />
+      </div>
+    );
+  };
+
+  // Filter projects based on search query and filters
+  const filteredProjects = projects.filter(project => {
+    // Apply search filter (check name and client)
+    const matchesSearch = searchQuery === '' || 
+      project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      project.client.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // Apply status filter
+    const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
+    
+    // Apply priority filter
+    const matchesPriority = priorityFilter === 'all' || project.priority === priorityFilter;
+    
+    // Project must match all applied filters
+    return matchesSearch && matchesStatus && matchesPriority;
+  });
+
+  // Clear all filters
+  const clearFilters = () => {
+    setSearchQuery('');
+    setStatusFilter('all');
+    setPriorityFilter('all');
+  };
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 p-4 animate-fade-in shadow-md">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Project Timeline</h3>
-        <div className="flex items-center space-x-2">
+      {/* Timeline header with navigation & time range selector */}
+      <div className="flex justify-between items-start mb-4">
+        <div className="flex flex-col">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Project Timeline</h3>
+          {zoomedProjectId && (
+            <div className="flex items-center text-sm text-blue-600 dark:text-blue-400">
+              <span>Zoomed to: </span>
+              <span className="font-medium ml-1">
+                {projects.find(p => p.id === zoomedProjectId)?.name}
+              </span>
+              <button 
+                onClick={() => zoomToProject(null)}
+                className="ml-2 flex items-center text-xs bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 px-2 py-0.5 rounded"
+              >
+                Reset View
+              </button>
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
           <button 
             onClick={navigatePrevious}
             className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -178,7 +403,7 @@ export default function GanttChart({ projects }: GanttChartProps) {
             </svg>
           </button>
           
-          <div className="ml-4 border-l pl-4 dark:border-gray-600">
+          <div className="ml-2 border-l pl-2 dark:border-gray-600">
             <select 
               value={timeRange}
               onChange={(e) => setTimeRange(e.target.value as 'month' | 'quarter' | 'year')}
@@ -189,70 +414,303 @@ export default function GanttChart({ projects }: GanttChartProps) {
               <option value="year">Year</option>
             </select>
           </div>
+
+          {/* Toggle filters button */}
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="ml-2 flex items-center text-sm text-blue-600 dark:text-blue-400 hover:underline"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
+              <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
+            </svg>
+            {showFilters ? 'Hide Filters' : 'Show Filters'}
+          </button>
         </div>
       </div>
 
-      {/* Date Headers */}
-      <div className="mb-2 mt-6 overflow-x-auto">
-        <div className="min-w-full flex border-b dark:border-gray-700 pb-2">
-          <div className="w-1/4 pr-2 text-sm font-medium text-gray-500 dark:text-gray-400">Project</div>
-          <div className="w-3/4 flex">
-            {dateHeaders.map((date, index) => (
-              <div key={index} className="flex-1 text-center text-xs text-gray-500 dark:text-gray-400">
-                {formatDateHeader(date)}
+      {/* Search & Filter Panel */}
+      {showFilters && (
+        <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg mb-4 animate-fade-in">
+          <div className="flex flex-col md:flex-row gap-3 mb-3">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Search</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by name or client..."
+                  className="w-full pl-8 p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                />
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-2 top-3 text-gray-400">
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
               </div>
-            ))}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as ProjectStatus | 'all')}
+                className="w-full p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              >
+                <option value="all">All Statuses</option>
+                <option value="on-track">On Track</option>
+                <option value="at-risk">At Risk</option>
+                <option value="delayed">Delayed</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Priority</label>
+              <select
+                value={priorityFilter}
+                onChange={(e) => setPriorityFilter(e.target.value as ProjectPriority | 'all')}
+                className="w-full p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              >
+                <option value="all">All Priorities</option>
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+              </select>
+            </div>
+            <div className="self-end">
+              <button
+                onClick={clearFilters}
+                className="p-2 border dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300"
+                disabled={searchQuery === '' && statusFilter === 'all' && priorityFilter === 'all'}
+              >
+                Clear Filters
+              </button>
+            </div>
+          </div>
+
+          {/* Results count */}
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            Showing {filteredProjects.length} of {projects.length} projects
+            {(searchQuery !== '' || statusFilter !== 'all' || priorityFilter !== 'all') && (
+              <span> (filtered)</span>
+            )}
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Project Bars */}
-      <div className="overflow-x-auto">
-        <div className="min-w-full">
-          {projects.map(project => {
-            const { left, width, completion, barColor } = getProjectBarStyle(project);
-            
-            return (
-              <div key={project.id} className="flex items-center h-10 mb-2">
-                <div className="w-1/4 pr-2 truncate text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {project.name}
+      {/* Timeline content */}
+      <div className="timeline-wrapper">
+        {/* Date Headers */}
+        <div className="mb-2 mt-6 overflow-x-auto">
+          <div className="min-w-full flex border-b dark:border-gray-700 pb-2">
+            <div className="w-1/4 pr-2 text-sm font-medium text-gray-500 dark:text-gray-400">Project</div>
+            <div className="w-3/4 flex">
+              {dateHeaders.map((date, index) => (
+                <div key={index} className="flex-1 text-center text-xs text-gray-500 dark:text-gray-400">
+                  {formatDateHeader(date)}
                 </div>
-                <div className="w-3/4 relative h-6">
-                  {/* Project Bar */}
-                  <div 
-                    className={`absolute h-6 rounded ${barColor} opacity-80 transition-all duration-300 shadow-sm`}
-                    style={{ left, width }}
-                    title={`${project.name}: Due ${project.dueDate}`}
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Project Bars */}
+        <div className="overflow-x-auto overflow-y-auto relative" style={{ maxHeight: '60vh' }} ref={chartRef}>
+          {/* Today's vertical line - rendered outside the scrollable div */}
+          {(() => {
+            const todayPosition = getTodayPosition();
+            if (todayPosition !== null) {
+              return (
+                <div 
+                  className="absolute top-0 left-0 w-full h-full pointer-events-none z-10"
+                  style={{ paddingLeft: '25%' }} // Account for the left label column
+                >
+                  <div
+                    className="absolute top-0 bottom-0 border-l-2 border-blue-600 dark:border-blue-500"
+                    style={{ 
+                      left: `${todayPosition * 0.75}%`, // Adjust for the label column (25% width)
+                      height: '100%',
+                      pointerEvents: 'none'
+                    }}
+                    aria-label="Current date"
                   >
-                    {/* Completion Overlay */}
-                    <div 
-                      className="h-full bg-white dark:bg-gray-900 opacity-60 rounded"
-                      style={{ width: `${100 - completion}%` }}
-                    ></div>
+                    <div className="bg-blue-600 dark:bg-blue-500 text-white text-xs px-1 py-0.5 rounded absolute top-0 -translate-x-1/2">
+                      Today
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            }
+            return null;
+          })()}
+          
+          <div className="min-w-full">
+            {filteredProjects.map((project, projectIndex) => {
+              const isExpanded = expandedProjectId === project.id;
+              const taskHeight = 32; // Height for each task bar
+              const taskMargin = 8; // Margin between tasks
+              const totalTasks = project.tasks.length;
+              
+              // Calculate total row height including expanded tasks and spacing
+              const expandedHeight = isExpanded ? 
+                (taskHeight + taskMargin) * totalTasks + 60 : 0;
+                
+              // Base project row height plus expanded height if needed
+              const rowHeight = 50 + expandedHeight;
+              
+              return (
+                <div key={project.id} className="project-row mb-3 pb-3 relative" style={{ minHeight: rowHeight }}>
+                  <div className="flex items-center mb-2">
+                    <div className="w-1/4 pr-2 truncate text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
+                      <button
+                        className="mr-2 text-xs text-blue-600 dark:text-blue-400 hover:underline focus:outline-none"
+                        onClick={() => setExpandedProjectId(isExpanded ? null : project.id)}
+                        aria-label={isExpanded ? 'Collapse tasks' : 'Expand tasks'}
+                      >
+                        {isExpanded ? '▼' : '▶'}
+                      </button>
+                      {project.name}
+                    </div>
+                    <div className="w-3/4 relative h-10">
+                      {renderProjectBar(project)}
+                    </div>
+                  </div>
+                  
+                  {/* Space between project and tasks when expanded */}
+                  {isExpanded && <div className="h-4"></div>}
+                  
+                  {/* Show tasks as sub-bars if expanded */}
+                  {isExpanded && (
+                    <div className="tasks-container px-8 py-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                      <div className="mb-3">
+                        <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Tasks</span>
+                      </div>
+                      
+                      {/* Tasks */}
+                      {project.tasks.map((task, index) => (
+                        <div 
+                          key={task.id} 
+                          className="flex items-center mb-2.5"
+                          style={{ height: taskHeight }}
+                        >
+                          <div className="w-1/4 pr-2 truncate text-sm text-gray-600 dark:text-gray-400">
+                            {task.name}
+                          </div>
+                          <div className="w-3/4 relative" style={{ height: taskHeight - 8 }}>
+                            {renderProjectBar({
+                              ...project,
+                              id: project.id + '-' + task.id,
+                              name: task.name,
+                              startDate: project.startDate,
+                              dueDate: project.dueDate,
+                              tasks: [task],
+                              status: task.completed ? 'completed' : 'on-track',
+                            }, true)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          
+          {/* Floating Tooltip - positioned absolutely within chart container */}
+          {hoveredProjectId && (
+            <div 
+              className="absolute bg-white dark:bg-gray-800 border dark:border-gray-700 rounded shadow-lg p-3 text-xs w-64 animate-fade-in z-[100]"
+              style={{ 
+                top: `${tooltipPosition.top}px`, 
+                left: `${tooltipPosition.left}px`,
+                transform: 'translateX(-50%)',
+                minWidth: '12rem', 
+                maxWidth: '18rem', 
+                whiteSpace: 'normal' 
+              }}
+            >
+              {(() => {
+                const project = projects.find(p => {
+                  // Check if it's a main project or a task
+                  if (p.id === hoveredProjectId) return true;
+                  // Check if it's a task (format: projectId-taskId)
+                  if (hoveredProjectId.includes('-')) {
+                    const [projectId, taskId] = hoveredProjectId.split('-');
+                    return p.id === projectId;
+                  }
+                  return false;
+                });
+                
+                if (!project) return null;
+                
+                // If it's a task (format: projectId-taskId)
+                if (hoveredProjectId.includes('-')) {
+                  const [projectId, taskId] = hoveredProjectId.split('-');
+                  const task = project.tasks.find(t => t.id === taskId);
+                  
+                  if (task) {
+                    return (
+                      <>
+                        <div className="font-semibold text-gray-900 dark:text-white mb-1">{task.name}</div>
+                        <div className="mb-1.5 font-medium">
+                          {format(new Date(project.startDate), 'MMM d, yyyy')} - {format(new Date(project.dueDate), 'MMM d, yyyy')}
+                        </div>
+                        <div>Status: <span className="font-medium">{task.completed ? 'Completed' : 'In Progress'}</span></div>
+                        <div>Project: {project.name}</div>
+                        <div>Client: {project.client}</div>
+                      </>
+                    );
+                  }
+                }
+                
+                // Regular project tooltip
+                return (
+                  <>
+                    <div className="font-semibold text-gray-900 dark:text-white mb-1">{project.name}</div>
+                    <div className="mb-1.5 font-medium">
+                      {format(new Date(project.startDate), 'MMM d, yyyy')} - {format(new Date(project.dueDate), 'MMM d, yyyy')}
+                    </div>
+                    <div>Status: <span className="font-medium">{project.status}</span></div>
+                    <div>Client: {project.client}</div>
+                    <div>Progress: {Math.round((project.tasks.filter(t => t.completed).length / project.tasks.length) * 100) || 0}%</div>
+                    <div>Tasks: {project.tasks.length}</div>
+                  </>
+                );
+              })()}
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="mt-4 text-xs text-gray-500 dark:text-gray-400 flex items-center">
-        <div className="flex items-center mr-4">
-          <div className="w-3 h-3 bg-green-500 rounded-full mr-1"></div>
-          <span>On Track</span>
+      {/* Legend */}
+      <div className="mt-4 text-xs text-gray-500 dark:text-gray-400 flex flex-wrap items-center justify-between gap-y-2">
+        <div className="flex flex-wrap items-center gap-y-2">
+          <div className="flex items-center mr-4">
+            <div className="w-3 h-3 bg-green-500 rounded-full mr-1"></div>
+            <span>On Track</span>
+          </div>
+          <div className="flex items-center mr-4">
+            <div className="w-3 h-3 bg-yellow-500 rounded-full mr-1"></div>
+            <span>At Risk</span>
+          </div>
+          <div className="flex items-center mr-4">
+            <div className="w-3 h-3 bg-red-500 rounded-full mr-1"></div>
+            <span>Delayed</span>
+          </div>
+          <div className="flex items-center mr-4">
+            <div className="w-3 h-3 bg-purple-500 rounded-full mr-1"></div>
+            <span>Completed</span>
+          </div>
+          <div className="flex items-center ml-4 pl-4 border-l dark:border-gray-600">
+            <div className="h-3 border-l-2 border-blue-600 dark:border-blue-500 mr-1"></div>
+            <span>Current Date</span>
+          </div>
         </div>
-        <div className="flex items-center mr-4">
-          <div className="w-3 h-3 bg-yellow-500 rounded-full mr-1"></div>
-          <span>At Risk</span>
-        </div>
-        <div className="flex items-center mr-4">
-          <div className="w-3 h-3 bg-red-500 rounded-full mr-1"></div>
-          <span>Delayed</span>
-        </div>
-        <div className="flex items-center">
-          <div className="w-3 h-3 bg-purple-500 rounded-full mr-1"></div>
-          <span>Completed</span>
+        <div className="text-xs text-right">
+          <span className="text-blue-600 dark:text-blue-400">Tip:</span> Hover over a project and click the zoom icon <span className="inline-block mx-1 p-0.5 bg-blue-600/70 rounded">
+            <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+              <path d="M11 8L20 8 20 17" />
+              <path d="M4 4L20 20" />
+            </svg>
+          </span> to focus on it.
         </div>
       </div>
     </div>

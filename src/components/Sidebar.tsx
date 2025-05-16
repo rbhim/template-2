@@ -4,8 +4,8 @@ import { useState } from 'react';
 import Image from 'next/image';
 
 interface SidebarProps {
-  activeTab: 'dashboard' | 'gantt' | 'teams' | 'analytics';
-  setActiveTab: (tab: 'dashboard' | 'gantt' | 'teams' | 'analytics') => void;
+  activeTab: 'dashboard' | 'gantt' | 'teams';
+  setActiveTab: (tab: 'dashboard' | 'gantt' | 'teams') => void;
   isDarkMode: boolean;
   toggleDarkMode: () => void;
 }
@@ -99,22 +99,6 @@ export default function Sidebar({ activeTab, setActiveTab, isDarkMode, toggleDar
               <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
             </svg>
             {!isCollapsed && <span className="font-medium">Team Management</span>}
-          </button>
-          
-          <button
-            onClick={() => setActiveTab('analytics')}
-            className={`w-full flex items-center px-4 py-3.5 rounded-lg transition-all ${
-              activeTab === 'analytics'
-                ? 'bg-[#1A3671] text-white shadow-lg'
-                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
-            }`}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isCollapsed ? 'mx-auto' : 'mr-4'}>
-              <line x1="18" y1="20" x2="18" y2="10"></line>
-              <line x1="12" y1="20" x2="12" y2="4"></line>
-              <line x1="6" y1="20" x2="6" y2="14"></line>
-            </svg>
-            {!isCollapsed && <span className="font-medium">Analytics</span>}
           </button>
         </nav>
       </div>

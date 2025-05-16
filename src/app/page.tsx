@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import ProjectBoard from "../components/ProjectBoard";
 import GanttChart from "../components/GanttChart";
-import ProjectStats from "../components/ProjectStats";
 import TeamSection from "../components/TeamSection";
 import Sidebar from "../components/Sidebar";
 import { Project, Task, TeamMember } from "../lib/types";
@@ -71,6 +70,11 @@ const DEMO_PROJECTS: Project[] = [
       { id: '6', name: 'Draft Report', completed: false, order: 6 },
       { id: '7', name: 'Final Report', completed: false, order: 7 },
     ],
+    milestones: [
+      { id: 'm1', name: 'Project Kickoff', date: '2023-10-05', completed: true },
+      { id: 'm2', name: 'Data Collection Complete', date: '2023-11-01', completed: false },
+      { id: 'm3', name: 'Final Presentation', date: '2023-12-10', completed: false },
+    ],
     notes: [
       {
         id: '1',
@@ -104,6 +108,10 @@ const DEMO_PROJECTS: Project[] = [
       { id: '5', name: 'Recommendations', completed: false, order: 5 },
       { id: '6', name: 'Draft Report', completed: false, order: 6 },
       { id: '7', name: 'Final Report', completed: false, order: 7 },
+    ],
+    milestones: [
+      { id: 'm1', name: 'Model Calibration', date: '2023-10-15', completed: true },
+      { id: 'm2', name: 'Traffic Analysis Approval', date: '2023-11-15', completed: false },
     ],
     notes: [
       {
@@ -140,6 +148,12 @@ const DEMO_PROJECTS: Project[] = [
       { id: '13', name: 'Comments Received', completed: false, order: 13 },
       { id: '14', name: 'Final Report Submitted', completed: false, order: 14 },
     ],
+    milestones: [
+      { id: 'm1', name: 'Initial Submission', date: '2023-11-05', completed: true },
+      { id: 'm2', name: 'Mid-Review Meeting', date: '2023-12-15', completed: false },
+      { id: 'm3', name: 'Municipal Approval', date: '2024-01-30', completed: false },
+      { id: 'm4', name: 'Client Sign-off', date: '2024-02-25', completed: false, color: '#EA580C' }, // Custom color
+    ],
     notes: [
       {
         id: '1',
@@ -159,7 +173,7 @@ const DEMO_PROJECTS: Project[] = [
 ];
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'gantt' | 'teams' | 'analytics'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'gantt' | 'teams'>('dashboard');
   const [projects, setProjects] = useState<Project[]>(DEMO_PROJECTS);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>(DEMO_TEAM_MEMBERS);
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -209,7 +223,7 @@ export default function Home() {
           {activeTab === 'gantt' && (
             <div className="mb-6">
               <GanttChart projects={projects} />
-            </div>
+        </div>
           )}
 
           {activeTab === 'teams' && (
@@ -218,10 +232,6 @@ export default function Home() {
               initialTeamMembers={teamMembers}
               onUpdateTeamMembers={handleUpdateTeamMembers}
             />
-          )}
-
-          {activeTab === 'analytics' && (
-            <ProjectStats projects={projects} />
           )}
         </div>
       </main>

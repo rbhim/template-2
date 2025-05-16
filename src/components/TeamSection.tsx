@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Project, TeamMember } from '../lib/types';
 
 interface TeamSectionProps {
@@ -16,16 +16,15 @@ interface MemberFormData {
   role: string;
   email: string;
   selectedProjects: string[]; // Project IDs
+  avatar: string; // URL to the avatar image
 }
 
 // Sample avatars for team members
-const avatars = [
-  'https://randomuser.me/api/portraits/men/1.jpg',
-  'https://randomuser.me/api/portraits/women/2.jpg',
-  'https://randomuser.me/api/portraits/men/3.jpg',
-  'https://randomuser.me/api/portraits/women/4.jpg',
-  'https://randomuser.me/api/portraits/men/5.jpg',
-  'https://randomuser.me/api/portraits/women/6.jpg',
+const defaultAvatar = 'https://cdn.pixabay.com/photo/2016/08/08/09/17/avatar-1577909_960_720.png';
+
+// Game-style preset avatars - TO BE REPLACED with user-provided samples
+const avatars: string[] = [
+  // Will be populated with user-provided sample avatars
 ];
 
 // Sample roles for the dropdown
@@ -33,15 +32,33 @@ const roles = [
   'Project Manager',
   'Traffic Engineer',
   'Transportation Planner',
-  'Civil Engineer',
-  'Data Analyst',
-  'Field Technician',
-  'Administrative',
+  'Designer',
+  'Analyst',
+  'Admin',
 ];
 
 export default function TeamSection({ projects, initialTeamMembers = [], onUpdateTeamMembers }: TeamSectionProps) {
   // Team members state
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  
+  // Custom roles state
+  const [customRoles, setCustomRoles] = useState<string[]>(() => {
+    // Try to load custom roles from localStorage
+    if (typeof window !== 'undefined') {
+      const savedRoles = localStorage.getItem('customTeamRoles');
+      return savedRoles ? JSON.parse(savedRoles) : [];
+    }
+    return [];
+  });
+  const [newCustomRole, setNewCustomRole] = useState<string>('');
+  const [showCustomRoleInput, setShowCustomRoleInput] = useState<boolean>(false);
+  
+  // File upload state
+  const [uploadMode, setUploadMode] = useState<'preset' | 'upload'>('preset');
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [uploadedEditImage, setUploadedEditImage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const editFileInputRef = useRef<HTMLInputElement>(null);
   
   // Initialize team members from props or use default
   useEffect(() => {
@@ -55,41 +72,45 @@ export default function TeamSection({ projects, initialTeamMembers = [], onUpdat
           name: 'John Doe',
           role: 'Project Manager',
           email: 'john.doe@example.com',
-          avatar: avatars[0],
+          avatar: defaultAvatar,
         },
         {
           id: '2',
           name: 'Jane Smith',
           role: 'Traffic Engineer',
           email: 'jane.smith@example.com',
-          avatar: avatars[1],
+          avatar: defaultAvatar,
         },
         {
           id: '3',
           name: 'Robert Johnson',
           role: 'Transportation Planner',
           email: 'robert.johnson@example.com',
-          avatar: avatars[2],
+          avatar: defaultAvatar,
         },
       ]);
     }
   }, [initialTeamMembers]);
   
   const [isAddingMember, setIsAddingMember] = useState(false);
+  const [showAvatarSelector, setShowAvatarSelector] = useState(false);
   const [newMember, setNewMember] = useState<MemberFormData>({
     name: '',
     role: 'Traffic Engineer',
     email: '',
     selectedProjects: [],
+    avatar: defaultAvatar, // Default generic avatar
   });
   const [activeTab, setActiveTab] = useState<'members' | 'projects'>('members');
   const [expandedMemberId, setExpandedMemberId] = useState<string | null>(null);
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
+  const [showEditAvatarSelector, setShowEditAvatarSelector] = useState(false);
   const [editForm, setEditForm] = useState<MemberFormData>({
     name: '',
     role: '',
     email: '',
     selectedProjects: [],
+    avatar: '',
   });
 
   // Update parent component when team members change
@@ -109,7 +130,7 @@ export default function TeamSection({ projects, initialTeamMembers = [], onUpdat
       name: newMember.name,
       role: newMember.role,
       email: newMember.email,
-      avatar: avatars[Math.floor(Math.random() * avatars.length)],
+      avatar: newMember.avatar,
     };
     
     const updatedMembers = [...teamMembers, member];
@@ -125,13 +146,18 @@ export default function TeamSection({ projects, initialTeamMembers = [], onUpdat
       }
     });
     
+    // Reset all form fields and states
     setNewMember({
       name: '',
       role: 'Traffic Engineer',
       email: '',
       selectedProjects: [],
+      avatar: defaultAvatar, // Default generic avatar
     });
     setIsAddingMember(false);
+    setShowAvatarSelector(false);
+    setUploadMode('preset');
+    setUploadedImage(null);
   };
 
   // Update team member
@@ -145,12 +171,14 @@ export default function TeamSection({ projects, initialTeamMembers = [], onUpdat
             name: editForm.name,
             role: editForm.role,
             email: editForm.email,
+            avatar: editForm.avatar,
           }
         : member
     );
     
     updateTeamMembers(updatedMembers);
     setEditingMemberId(null);
+    setShowEditAvatarSelector(false);
     
     // Update project assignments is not implemented here as we don't have access to update projects
   };
@@ -173,7 +201,7 @@ export default function TeamSection({ projects, initialTeamMembers = [], onUpdat
     });
   };
 
-  // Handle project selection in add/edit forms
+  // Toggle project selection in add/edit forms
   const toggleProjectSelection = (projectId: string, isEditing = false) => {
     if (isEditing) {
       const updatedProjects = editForm.selectedProjects.includes(projectId)
@@ -187,6 +215,72 @@ export default function TeamSection({ projects, initialTeamMembers = [], onUpdat
         : [...newMember.selectedProjects, projectId];
       
       setNewMember({ ...newMember, selectedProjects: updatedProjects });
+    }
+  };
+  
+  // Add custom role
+  const addCustomRole = () => {
+    if (!newCustomRole.trim()) return;
+    
+    // Check if role already exists in default roles or custom roles
+    const roleExists = [...roles, ...customRoles].some(
+      role => role.toLowerCase() === newCustomRole.trim().toLowerCase()
+    );
+    
+    if (!roleExists) {
+      const updatedRoles = [...customRoles, newCustomRole.trim()];
+      setCustomRoles(updatedRoles);
+      
+      // Save to localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('customTeamRoles', JSON.stringify(updatedRoles));
+      }
+      
+      // Auto-select the new role
+      setNewMember(prev => ({ ...prev, role: newCustomRole.trim() }));
+    }
+    
+    setNewCustomRole('');
+    setShowCustomRoleInput(false);
+  };
+
+  // Handle file upload for avatar
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>, isEdit = false) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Check if file is an image
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file');
+      return;
+    }
+
+    // Check file size (limit to 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      alert('File size should be less than 2MB');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result as string;
+      if (isEdit) {
+        setUploadedEditImage(result);
+        setEditForm(prev => ({ ...prev, avatar: result }));
+      } else {
+        setUploadedImage(result);
+        setNewMember(prev => ({ ...prev, avatar: result }));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Trigger file input click
+  const triggerFileInput = (isEdit = false) => {
+    if (isEdit) {
+      editFileInputRef.current?.click();
+    } else {
+      fileInputRef.current?.click();
     }
   };
 
@@ -224,7 +318,21 @@ export default function TeamSection({ projects, initialTeamMembers = [], onUpdat
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Team Members</h3>
             <button 
-              onClick={() => setIsAddingMember(!isAddingMember)}
+              onClick={() => {
+                setIsAddingMember(!isAddingMember);
+                if (isAddingMember) {
+                  // If closing the form, reset states
+                  setShowAvatarSelector(false);
+                  setShowCustomRoleInput(false);
+                  setNewMember({
+                    name: '',
+                    role: 'Traffic Engineer',
+                    email: '',
+                    selectedProjects: [],
+                    avatar: defaultAvatar, // Default generic avatar
+                  });
+                }
+              }}
               className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
             >
               {isAddingMember ? 'Cancel' : 'Add Member'}
@@ -247,15 +355,56 @@ export default function TeamSection({ projects, initialTeamMembers = [], onUpdat
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Role</label>
-                  <select
-                    value={newMember.role}
-                    onChange={(e) => setNewMember({ ...newMember, role: e.target.value })}
-                    className="w-full p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                  >
-                    {roles.map(role => (
-                      <option key={role} value={role}>{role}</option>
-                    ))}
-                  </select>
+                  <div className="flex flex-col space-y-2">
+                    <select
+                      value={newMember.role}
+                      onChange={(e) => {
+                        const selectedValue = e.target.value;
+                        if (selectedValue === "add-custom") {
+                          setShowCustomRoleInput(true);
+                        } else {
+                          setNewMember({ ...newMember, role: selectedValue });
+                        }
+                      }}
+                      className="w-full p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    >
+                      <optgroup label="Standard Roles">
+                        {roles.map(role => (
+                          <option key={role} value={role}>{role}</option>
+                        ))}
+                      </optgroup>
+                      
+                      {customRoles.length > 0 && (
+                        <optgroup label="Custom Roles">
+                          {customRoles.map(role => (
+                            <option key={role} value={role}>{role}</option>
+                          ))}
+                        </optgroup>
+                      )}
+                      
+                      <option value="add-custom">+ Add Custom Role</option>
+                    </select>
+                    
+                    {showCustomRoleInput && (
+                      <div className="flex mt-2 animate-fade-in">
+                        <input
+                          type="text"
+                          value={newCustomRole}
+                          onChange={(e) => setNewCustomRole(e.target.value)}
+                          placeholder="Enter custom role"
+                          className="flex-1 p-2 border dark:border-gray-600 rounded-l bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                          autoFocus
+                        />
+                        <button
+                          onClick={addCustomRole}
+                          className="px-3 py-2 bg-blue-600 text-white rounded-r hover:bg-blue-700"
+                          disabled={!newCustomRole.trim()}
+                        >
+                          Add
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
@@ -267,6 +416,146 @@ export default function TeamSection({ projects, initialTeamMembers = [], onUpdat
                     placeholder="Enter email"
                   />
                 </div>
+              </div>
+
+              {/* Avatar Selector */}
+              <div className="mb-4">
+                <div className="flex justify-between items-center mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Profile Picture</label>
+                  <button 
+                    type="button"
+                    onClick={() => setShowAvatarSelector(!showAvatarSelector)}
+                    className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    {showAvatarSelector ? 'Hide Options' : 'Change Picture'}
+                  </button>
+                </div>
+                
+                <div className="flex items-center">
+                  <img 
+                    src={newMember.avatar}
+                    alt="Selected avatar"
+                    className="w-16 h-16 rounded-full object-cover border-2 border-blue-200 dark:border-blue-900"
+                  />
+                  <span className="ml-3 text-sm text-gray-500 dark:text-gray-400">
+                    {showAvatarSelector ? 'Select an avatar or upload your own' : 'Click "Change Picture" to select an avatar'}
+                  </span>
+                </div>
+                
+                {showAvatarSelector && (
+                  <div className="mt-3 animate-fade-in">
+                    {/* Upload option */}
+                    <div className="mb-3 flex flex-col">
+                      <div className="flex space-x-2 mb-2">
+                        <button
+                          type="button"
+                          onClick={() => setUploadMode('upload')}
+                          className={`px-3 py-1.5 text-xs rounded ${
+                            uploadMode === 'upload' 
+                              ? 'bg-blue-600 text-white' 
+                              : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                          }`}
+                        >
+                          Upload Image
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setUploadMode('preset')}
+                          className={`px-3 py-1.5 text-xs rounded ${
+                            uploadMode === 'preset' 
+                              ? 'bg-blue-600 text-white' 
+                              : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                          }`}
+                        >
+                          Use Preset Avatar
+                        </button>
+                      </div>
+                      
+                      {uploadMode === 'upload' && (
+                        <div>
+                          <input 
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={(e) => handleFileUpload(e)}
+                            accept="image/*"
+                            className="hidden"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => triggerFileInput()}
+                            className="flex items-center px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600 text-sm"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0l-4 4m4-4v12" />
+                            </svg>
+                            Select Image
+                          </button>
+                          <div className="text-xs mt-1 text-gray-500 dark:text-gray-400">
+                            Max size: 2MB. Formats: JPG, PNG, GIF
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Preset avatars */}
+                    {uploadMode === 'preset' && (
+                      <>
+                        <div className="text-xs mb-2 text-gray-600 dark:text-gray-400">
+                          Select an avatar:
+                        </div>
+                        <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setNewMember({ ...newMember, avatar: defaultAvatar })}
+                            className={`relative p-1 rounded-full ${
+                              newMember.avatar === defaultAvatar 
+                                ? 'ring-2 ring-blue-600 dark:ring-blue-400 bg-blue-50 dark:bg-blue-900/30'
+                                : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                            }`}
+                          >
+                            <img 
+                              src={defaultAvatar}
+                              alt="Default avatar"
+                              className="w-12 h-12 rounded-full object-cover"
+                            />
+                            {newMember.avatar === defaultAvatar && (
+                              <div className="absolute bottom-0 right-0 bg-blue-600 rounded-full w-5 h-5 flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                              </div>
+                            )}
+                          </button>
+                          {avatars.length > 0 && avatars.map((avatar, index) => (
+                            <button
+                              key={index}
+                              type="button"
+                              onClick={() => setNewMember({ ...newMember, avatar })}
+                              className={`relative p-1 rounded-full ${
+                                newMember.avatar === avatar 
+                                  ? 'ring-2 ring-blue-600 dark:ring-blue-400 bg-blue-50 dark:bg-blue-900/30'
+                                  : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                              }`}
+                            >
+                              <img 
+                                src={avatar}
+                                alt={`Avatar option ${index + 1}`}
+                                className="w-12 h-12 rounded-full object-cover"
+                              />
+                              {newMember.avatar === avatar && (
+                                <div className="absolute bottom-0 right-0 bg-blue-600 rounded-full w-5 h-5 flex items-center justify-center">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                  </svg>
+                                </div>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="mb-4">
@@ -325,13 +614,55 @@ export default function TeamSection({ projects, initialTeamMembers = [], onUpdat
                           <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Role</label>
                           <select
                             value={editForm.role}
-                            onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+                            onChange={(e) => {
+                              const selectedValue = e.target.value;
+                              if (selectedValue === "add-custom") {
+                                setShowCustomRoleInput(true);
+                              } else {
+                                setEditForm({ ...editForm, role: selectedValue });
+                              }
+                            }}
                             className="w-full p-1.5 text-sm border dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                           >
-                            {roles.map(role => (
-                              <option key={role} value={role}>{role}</option>
-                            ))}
+                            <optgroup label="Standard Roles">
+                              {roles.map(role => (
+                                <option key={role} value={role}>{role}</option>
+                              ))}
+                            </optgroup>
+                            
+                            {customRoles.length > 0 && (
+                              <optgroup label="Custom Roles">
+                                {customRoles.map(role => (
+                                  <option key={role} value={role}>{role}</option>
+                                ))}
+                              </optgroup>
+                            )}
+                            
+                            <option value="add-custom">+ Add Custom Role</option>
                           </select>
+                          
+                          {showCustomRoleInput && (
+                            <div className="flex mt-2 animate-fade-in">
+                              <input
+                                type="text"
+                                value={newCustomRole}
+                                onChange={(e) => setNewCustomRole(e.target.value)}
+                                placeholder="Enter custom role"
+                                className="flex-1 p-1.5 text-sm border dark:border-gray-600 rounded-l bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                                autoFocus
+                              />
+                              <button
+                                onClick={() => {
+                                  addCustomRole();
+                                  setEditForm(prev => ({ ...prev, role: newCustomRole.trim() }));
+                                }}
+                                className="px-2 py-1 text-xs bg-blue-600 text-white rounded-r hover:bg-blue-700"
+                                disabled={!newCustomRole.trim()}
+                              >
+                                Add
+                              </button>
+                            </div>
+                          )}
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Email</label>
@@ -344,6 +675,147 @@ export default function TeamSection({ projects, initialTeamMembers = [], onUpdat
                         </div>
                       </div>
                       
+                      {/* Avatar Selector for Edit Form */}
+                      <div className="my-3">
+                        <div className="flex justify-between items-center mb-2">
+                          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">Profile Picture</label>
+                          <button 
+                            type="button"
+                            onClick={() => setShowEditAvatarSelector(!showEditAvatarSelector)}
+                            className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                          >
+                            {showEditAvatarSelector ? 'Hide Options' : 'Change Picture'}
+                          </button>
+                        </div>
+                        
+                        <div className="flex items-center">
+                          <img 
+                            src={editForm.avatar}
+                            alt="Selected avatar"
+                            className="w-12 h-12 rounded-full object-cover border-2 border-blue-100 dark:border-blue-900"
+                          />
+                          <span className="ml-3 text-xs text-gray-500 dark:text-gray-400">
+                            {showEditAvatarSelector ? 'Select an avatar or upload your own' : 'Click "Change Picture" to select'}
+                          </span>
+                        </div>
+                        
+                        {showEditAvatarSelector && (
+                          <div className="mt-2 animate-fade-in">
+                            {/* Upload option */}
+                            <div className="mb-2 flex flex-col">
+                              <div className="flex space-x-2 mb-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setUploadMode('upload')}
+                                  className={`px-2 py-1 text-xs rounded ${
+                                    uploadMode === 'upload' 
+                                      ? 'bg-blue-600 text-white' 
+                                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                                  }`}
+                                >
+                                  Upload Image
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setUploadMode('preset')}
+                                  className={`px-2 py-1 text-xs rounded ${
+                                    uploadMode === 'preset' 
+                                      ? 'bg-blue-600 text-white' 
+                                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                                  }`}
+                                >
+                                  Use Preset Avatar
+                                </button>
+                              </div>
+                              
+                              {uploadMode === 'upload' && (
+                                <div>
+                                  <input 
+                                    type="file"
+                                    ref={editFileInputRef}
+                                    onChange={(e) => handleFileUpload(e, true)}
+                                    accept="image/*"
+                                    className="hidden"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => triggerFileInput(true)}
+                                    className="flex items-center px-2 py-1.5 bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600 text-xs"
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0l-4 4m4-4v12" />
+                                    </svg>
+                                    Select Image
+                                  </button>
+                                  <div className="text-xs mt-1 text-gray-500 dark:text-gray-400">
+                                    Max size: 2MB
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                            
+                            {/* Preset avatars */}
+                            {uploadMode === 'preset' && (
+                              <>
+                                <div className="text-xs mb-2 text-gray-500 dark:text-gray-400">
+                                  Select an avatar:
+                                </div>
+                                <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditForm({ ...editForm, avatar: defaultAvatar })}
+                                    className={`relative p-1 rounded-full ${
+                                      editForm.avatar === defaultAvatar 
+                                        ? 'ring-2 ring-blue-600 dark:ring-blue-400 bg-blue-50 dark:bg-blue-900/30'
+                                        : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                                    }`}
+                                  >
+                                    <img 
+                                      src={defaultAvatar}
+                                      alt="Default avatar"
+                                      className="w-10 h-10 rounded-full object-cover"
+                                    />
+                                    {editForm.avatar === defaultAvatar && (
+                                      <div className="absolute bottom-0 right-0 bg-blue-600 rounded-full w-4 h-4 flex items-center justify-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                          <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
+                                      </div>
+                                    )}
+                                  </button>
+                                  {avatars.length > 0 && avatars.map((avatar, index) => (
+                                    <button
+                                      key={index}
+                                      type="button"
+                                      onClick={() => setEditForm({ ...editForm, avatar })}
+                                      className={`relative p-1 rounded-full ${
+                                        editForm.avatar === avatar 
+                                          ? 'ring-2 ring-blue-600 dark:ring-blue-400 bg-blue-50 dark:bg-blue-900/30'
+                                          : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                                      }`}
+                                    >
+                                      <img 
+                                        src={avatar}
+                                        alt={`Avatar option ${index + 1}`}
+                                        className="w-10 h-10 rounded-full object-cover"
+                                      />
+                                      {editForm.avatar === avatar && (
+                                        <div className="absolute bottom-0 right-0 bg-blue-600 rounded-full w-4 h-4 flex items-center justify-center">
+                                          <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                          </svg>
+                                        </div>
+                                      )}
+                                    </button>
+                                  ))}
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Assigned Projects */}
                       <div>
                         <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Assigned Projects</label>
                         <div className="flex flex-wrap gap-2">
@@ -360,7 +832,7 @@ export default function TeamSection({ projects, initialTeamMembers = [], onUpdat
                           ))}
                         </div>
                       </div>
-                      
+
                       <div className="flex gap-2">
                         <button
                           onClick={() => updateTeamMember(member.id)}
@@ -369,7 +841,12 @@ export default function TeamSection({ projects, initialTeamMembers = [], onUpdat
                           Save
                         </button>
                         <button
-                          onClick={() => setEditingMemberId(null)}
+                          onClick={() => {
+                            setEditingMemberId(null);
+                            setShowEditAvatarSelector(false);
+                            setUploadMode('preset');
+                            setUploadedEditImage(null);
+                          }}
                           className="px-2 py-1 border text-xs rounded hover:bg-gray-50 dark:hover:bg-gray-700"
                         >
                           Cancel
@@ -399,7 +876,9 @@ export default function TeamSection({ projects, initialTeamMembers = [], onUpdat
                                 role: member.role,
                                 email: member.email,
                                 selectedProjects: assignedProjects,
+                                avatar: member.avatar,
                               });
+                              setShowEditAvatarSelector(false); // Reset the avatar selector
                             }}
                             className="p-1 text-gray-600 dark:text-gray-400 hover:text-blue-600"
                             aria-label="Edit member"

@@ -1,10 +1,22 @@
 You are an expert in TypeScript, Next.js App Router, React, and Tailwind. Follow @Next.js 14 App Router docs for Data Fetching, Rendering, and Routing. Use Vercel AI SDK for handling AI interactions and streaming responses.
 
-- All project files are saved in the /src folder. 
-  - src/app has the page.tsx and layout.tsx files
-  - src/app/api has the API routes
-  - src/app/components has all the React components
-  - src/app/lib has all the other code like helpers, hooks, and contexts
+- This is a project management app for a traffic/transportation engineering consulting firm, focused on visually tracking projects through customizable stages and tasks.
+- The frontend is modular, with all code in the /src folder.
+  - src/app: page.tsx, layout.tsx, and main app entry
+  - src/app/api: API routes (OpenAI, Anthropic, Replicate, Deepgram, etc.)
+  - src/app/components: All React components (ProjectBoard, ProjectItem, TaskList, GanttChart, ProjectStats, TeamSection, TaskCategoryManager, etc.)
+  - src/app/lib: Types, helpers, hooks, and contexts (including Firebase, Auth, Deepgram, etc.)
+- Use demo data for projects/tasks unless otherwise specified. Avoid random values that cause hydration errors.
+- UI/UX conventions:
+  - Modern dashboard with tabbed interface (Dashboard, Timeline/Gantt, Team, Task Categories, Analytics)
+  - Status badges, color coding, dark mode, and animated transitions
+  - Filtering, sorting, and drag-and-drop for tasks and categories
+  - Data visualizations for project analytics
+- Always use Next.js App Router (app directory), TailwindCSS, and TypeScript.
+- Use Vercel AI SDK for all AI/LLM interactions and streaming.
+- Firebase utilities are available but only use if persistent backend is required.
+- All new features/components should be modular and placed in /src/app/components.
+- Maintain accessibility and responsive design throughout the app.
 
 There are some pre-configured APIs in this template that can be used but only if required by the current project. These have already been created:
 - Firebase

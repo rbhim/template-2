@@ -7,6 +7,14 @@ export interface Task {
   assignedTo?: string; // Team member ID
 }
 
+export interface Milestone {
+  id: string;
+  name: string;
+  date: string; // ISO date string
+  completed: boolean;
+  color?: string; // Optional custom color
+}
+
 export interface Note {
   id: string;
   content: string;
@@ -35,6 +43,7 @@ export interface Project {
   status?: ProjectStatus;
   priority?: ProjectPriority;
   tasks: Task[];
+  milestones?: Milestone[]; // Project milestones
   notes?: Note[]; // Updated to array of Note objects
   assignedTeam?: string[]; // Array of team member IDs
 } 
