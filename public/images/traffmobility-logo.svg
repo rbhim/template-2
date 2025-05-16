@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 80" width="150" height="40">
+  <!-- Hexagons for the logo -->
+  <defs>
+    <linearGradient id="orangeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff4500" />
+      <stop offset="100%" stop-color="#ff8c00" />
+    </linearGradient>
+  </defs>
+  <!-- Hexagon Group -->
+  <g transform="translate(30, 10)">
+    <polygon points="25,0 50,15 50,45 25,60 0,45 0,15" fill="url(#orangeGradient)" />
+    <polygon points="60,15 85,0 110,15 110,45 85,60 60,45" fill="url(#orangeGradient)" />
+    <polygon points="25,50 50,35 75,50 75,80 50,95 25,80" fill="url(#orangeGradient)" />
+  </g>
+  <!-- "TraffMobility" text - not in the image but added for context -->
+  <text x="150" y="45" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#000000">TraffMobility</text>
+</svg> 
