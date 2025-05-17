@@ -68,6 +68,11 @@ export default function TeamSection({ projects, initialTeamMembers = [], onUpdat
   const [isCancelAddDialogOpen, setIsCancelAddDialogOpen] = useState(false);
   const [isCancelEditDialogOpen, setIsCancelEditDialogOpen] = useState(false);
   
+  // Filter and search state
+  const [roleFilter, setRoleFilter] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [showFilters, setShowFilters] = useState(true);
+  
   // Initialize team members from props or use default
   useEffect(() => {
     if (initialTeamMembers.length > 0) {
@@ -128,6 +133,26 @@ export default function TeamSection({ projects, initialTeamMembers = [], onUpdat
       onUpdateTeamMembers(updatedMembers);
     }
   };
+
+  // Apply filters to team members
+  const filteredTeamMembers = teamMembers.filter(member => {
+    // Apply role filter
+    if (roleFilter !== 'all' && member.role !== roleFilter) {
+      return false;
+    }
+    
+    // Apply search filter
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase().trim();
+      return (
+        member.name.toLowerCase().includes(term) ||
+        member.email.toLowerCase().includes(term) ||
+        member.role.toLowerCase().includes(term)
+      );
+    }
+    
+    return true;
+  });
 
   // Add a new team member
   const addTeamMember = () => {
@@ -559,6 +584,115 @@ export default function TeamSection({ projects, initialTeamMembers = [], onUpdat
               </button>
             </div>
 
+            {/* Filter Toggle Button */}
+            <div className="flex items-center justify-between mb-4">
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="flex items-center text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                aria-expanded={showFilters}
+                aria-controls="team-filter-panel"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 mr-2 transition-transform duration-300 ${showFilters ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+                {showFilters ? 'Hide Search & Filters' : 'Show Search & Filters'}
+              </button>
+
+              {/* Active filter indicators (only shown when filters are collapsed) */}
+              {!showFilters && (
+                <div className="flex flex-wrap items-center gap-2 text-sm">
+                  {searchTerm && (
+                    <span className="px-2 py-1 rounded bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100 flex items-center">
+                      <span>Search: {searchTerm}</span>
+                      <button 
+                        onClick={() => setSearchTerm('')}
+                        className="ml-2 text-blue-600 dark:text-blue-400 hover:text-blue-800"
+                        aria-label="Clear search"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </span>
+                  )}
+                  {roleFilter !== 'all' && (
+                    <span className="px-2 py-1 rounded bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-100">
+                      Role: {roleFilter}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Search & Filter Panel */}
+            <div 
+              id="team-filter-panel"
+              className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                showFilters 
+                  ? 'max-h-[1000px] opacity-100 mb-4' 
+                  : 'max-h-0 opacity-0 mt-0 mb-0'
+              }`}
+            >
+              <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg animate-fade-in">
+                <div className="flex flex-col md:flex-row gap-3 mb-3">
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Search</label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        placeholder="Search by name, email, or role..."
+                        className="w-full pl-8 p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                      />
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-2 top-3 text-gray-400">
+                        <circle cx="11" cy="11" r="8" />
+                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Filter by Role</label>
+                    <select
+                      value={roleFilter}
+                      onChange={(e) => setRoleFilter(e.target.value)}
+                      className="w-full p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    >
+                      <option value="all">All Roles</option>
+                      {/* Standard roles */}
+                      {roles.map(role => (
+                        <option key={role} value={role}>{role}</option>
+                      ))}
+                      {/* Custom roles */}
+                      {customRoles.map(role => (
+                        <option key={role} value={role}>{role}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="self-end">
+                    <button
+                      onClick={() => {
+                        setSearchTerm('');
+                        setRoleFilter('all');
+                      }}
+                      className="p-2 border dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300"
+                      disabled={searchTerm === '' && roleFilter === 'all'}
+                    >
+                      Clear Filters
+                    </button>
+                  </div>
+                </div>
+
+                {/* Results count */}
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Showing {filteredTeamMembers.length} of {teamMembers.length} team members
+                  {(searchTerm !== '' || roleFilter !== 'all') && (
+                    <span> (filtered)</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
             {/* Add New Member Form */}
             {isAddingMember && (
               <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg mb-6 animate-slide-in">
@@ -815,11 +949,13 @@ export default function TeamSection({ projects, initialTeamMembers = [], onUpdat
             )}
 
             {/* Team Member List */}
-            <div className="space-y-4 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 400px)' }}>
-              {teamMembers.map(member => (
+            <div className="space-y-4 overflow-y-auto" style={{ maxHeight: showFilters ? 'calc(100vh - 400px)' : 'calc(100vh - 250px)' }}>
+              {filteredTeamMembers.map(member => (
                 <div 
                   key={member.id} 
-                  className="border dark:border-gray-700 rounded-lg overflow-hidden shadow-sm transition-all hover:shadow-md"
+                  className={`bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg overflow-hidden shadow-sm hover:shadow transition-all ${
+                    expandedMemberId === member.id ? 'animate-expand' : ''
+                  }`}
                 >
                   <div className="p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
                     <img

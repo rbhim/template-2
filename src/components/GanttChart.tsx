@@ -22,7 +22,7 @@ export default function GanttChart({ projects }: GanttChartProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'all'>('all');
   const [priorityFilter, setPriorityFilter] = useState<ProjectPriority | 'all'>('all');
-  const [showFilters, setShowFilters] = useState(false);
+  const [showFilters, setShowFilters] = useState(true);
   const [showTodayLine, setShowTodayLine] = useState(true);
   const [todayLineHeight, setTodayLineHeight] = useState(0);
 
@@ -332,22 +332,30 @@ export default function GanttChart({ projects }: GanttChartProps) {
     );
   };
 
-  // Filter projects based on search query and filters
-  const filteredProjects = projects.filter(project => {
-    // Apply search filter (check name and client)
-    const matchesSearch = searchQuery === '' || 
-      project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      project.client.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    // Apply status filter
-    const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
-    
-    // Apply priority filter
-    const matchesPriority = priorityFilter === 'all' || project.priority === priorityFilter;
-    
-    // Project must match all applied filters
-    return matchesSearch && matchesStatus && matchesPriority;
-  });
+  // Apply filters to projects
+  const filteredProjects = projects
+    .filter(project => {
+      // Apply status filter
+      if (statusFilter !== 'all' && project.status !== statusFilter) {
+        return false;
+      }
+      
+      // Apply priority filter
+      if (priorityFilter !== 'all' && project.priority !== priorityFilter) {
+        return false;
+      }
+      
+      // Apply search filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase().trim();
+        return (
+          project.name.toLowerCase().includes(query) ||
+          project.client.toLowerCase().includes(query)
+        );
+      }
+      
+      return true;
+    });
 
   // Clear all filters
   const clearFilters = () => {
@@ -468,23 +476,67 @@ export default function GanttChart({ projects }: GanttChartProps) {
             </svg>
             Today Line
           </button>
-
-          {/* Toggle filters button */}
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="ml-2 flex items-center text-sm text-blue-600 dark:text-blue-400 hover:underline"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
-              <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
-            </svg>
-            {showFilters ? 'Hide Filters' : 'Show Filters'}
-          </button>
         </div>
       </div>
 
+      {/* Filter Toggle Button */}
+      <div className="flex items-center justify-between mb-4">
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className="flex items-center text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+          aria-expanded={showFilters}
+          aria-controls="filter-panel"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 mr-2 transition-transform duration-300 ${showFilters ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+          </svg>
+          {showFilters ? 'Hide Filters' : 'Show Filters'}
+        </button>
+
+        {/* Active filter indicators (only shown when filters are collapsed) */}
+        {!showFilters && (
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            {searchQuery && (
+              <span className="px-2 py-1 rounded bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100 flex items-center">
+                <span>Search: {searchQuery}</span>
+                <button 
+                  onClick={() => setSearchQuery('')}
+                  className="ml-2 text-blue-600 dark:text-blue-400 hover:text-blue-800"
+                  aria-label="Clear search"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </span>
+            )}
+            {statusFilter !== 'all' && (
+              <span className="px-2 py-1 rounded bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100">
+                Status: {statusFilter === 'on-track' ? 'On Track' : 
+                        statusFilter === 'at-risk' ? 'At Risk' : 
+                        statusFilter === 'delayed' ? 'Delayed' : 'Completed'}
+              </span>
+            )}
+            {priorityFilter !== 'all' && (
+              <span className="px-2 py-1 rounded bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-100">
+                Priority: {priorityFilter === 'high' ? 'High' : 
+                         priorityFilter === 'medium' ? 'Medium' : 'Low'}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Search & Filter Panel */}
-      {showFilters && (
-        <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg mb-4 animate-fade-in">
+      <div 
+        id="filter-panel"
+        className={`overflow-hidden transition-all duration-300 ease-in-out ${
+          showFilters 
+            ? 'max-h-[1000px] opacity-100 mb-4' 
+            : 'max-h-0 opacity-0 mt-0 mb-0'
+        }`}
+      >
+        <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg animate-fade-in">
           <div className="flex flex-col md:flex-row gap-3 mb-3">
             <div className="flex-1">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Search</label>
@@ -548,10 +600,17 @@ export default function GanttChart({ projects }: GanttChartProps) {
             )}
           </div>
         </div>
-      )}
+      </div>
 
       {/* Timeline content */}
-      <div className="timeline-wrapper">
+      <div 
+        ref={chartRef} 
+        className="relative overflow-auto mt-4"
+        style={{ 
+          maxHeight: showFilters ? 'calc(100vh - 350px)' : 'calc(100vh - 220px)', 
+          scrollbarWidth: 'thin' 
+        }}
+      >
         {/* Date Headers */}
         <div className="mb-2 mt-6 overflow-x-auto">
           <div className="min-w-full flex border-b dark:border-gray-700 pb-2">

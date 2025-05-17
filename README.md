@@ -7,12 +7,19 @@ A modern project management dashboard for traffic/transportation engineering con
 - **Customizable Tasks:** Add, reorder, and group tasks; drag-and-drop support
 - **Status & Priority:** Color-coded status badges and priority indicators
 - **Dashboard Overview:** Tabbed interface for Dashboard, Timeline (Gantt), and Team management
-- **Gantt Chart:** Visual timeline of project stages and deadlines
+- **Interactive Gantt Chart:** 
+  - Visual timeline of project stages and deadlines
+  - Interactive timeline bars with resize handles to adjust start/end dates
+  - Project zooming feature to focus on specific project timelines
+  - Today line indicator for quick timeline reference
+  - Expandable tasks view for detailed project breakdown
 - **Team Management:** Assign team members, manage roles, and display avatars
 - **Task Categories:** Custom categories and grouping for tasks
-- **Notes:** Add and manage project notes with author attribution
+- **Notes:** Add and manage project notes with author attribution and system notes support
 - **Dark Mode:** Fully supported, toggleable
+- **Recent Projects Tracking:** Automatically tracks and displays recently viewed/updated projects
 - **User Experience:** 
+  - Collapsible filter sections to maximize screen space
   - Confirmation dialogs for all deletion actions (projects, tasks, notes, team members)
   - Unsaved changes protection when canceling forms
   - Responsive, accessible, and visually appealing interface
@@ -56,6 +63,13 @@ A modern project management dashboard for traffic/transportation engineering con
 - Firebase utilities are available but only used if persistent backend is required.
 - Follows best practices for accessibility and responsive design.
 - For AI/LLM features, uses Vercel AI SDK and streaming APIs.
+
+## Recent Updates
+- Added collapsible filters section to maximize dashboard space
+- Added drag-to-resize functionality for Gantt chart timeline bars
+- Implemented system notes for project documentation without author attribution
+- Enhanced Recent Projects sidebar tracking using database timestamps
+- Added visual feedback for timeline interactions 
 
 ---
 

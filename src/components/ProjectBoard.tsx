@@ -46,6 +46,7 @@ export default function ProjectBoard({ projects, onUpdateProjects, teamMembers, 
   const [activeClientTypeFilter, setActiveClientTypeFilter] = useState<'all' | 'private' | 'public'>('all');
   const [showImportModal, setShowImportModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showFilters, setShowFilters] = useState(true);
 
   const addCustomTask = () => {
     if (!customTaskName.trim()) return;
@@ -230,176 +231,236 @@ export default function ProjectBoard({ projects, onUpdateProjects, teamMembers, 
           />
         )}
 
-        {/* Search Bar */}
-        <div className="w-full max-w-md mx-auto md:mx-0 mt-6 animate-fade-in">
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-              <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
-                <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
-              </svg>
+        {/* Filter Toggle Button - Moved here */}
+        <div className="flex items-center justify-between mt-4">
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+            aria-expanded={showFilters}
+            aria-controls="filter-panel"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 mr-2 transition-transform duration-300 ${showFilters ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+            {showFilters ? 'Hide Search & Filters' : 'Show Search & Filters'}
+          </button>
+
+          {/* Active filter indicators (only shown when filters are collapsed) */}
+          {!showFilters && (
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              {searchTerm && (
+                <span className="px-2 py-1 rounded bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100 flex items-center">
+                  <span>Search: {searchTerm}</span>
+                  <button 
+                    onClick={() => setSearchTerm('')}
+                    className="ml-2 text-blue-600 dark:text-blue-400 hover:text-blue-800"
+                    aria-label="Clear search"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </span>
+              )}
+              {activeFilter !== 'all' && (
+                <span className="px-2 py-1 rounded bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100">
+                  Status: {activeFilter === 'on-track' ? 'On Track' : 
+                          activeFilter === 'at-risk' ? 'At Risk' : 
+                          activeFilter === 'delayed' ? 'Delayed' : 'Completed'}
+                </span>
+              )}
+              {activeClientTypeFilter !== 'all' && (
+                <span className="px-2 py-1 rounded bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-100">
+                  Client: {activeClientTypeFilter === 'private' ? 'Private' : 'Public'}
+                </span>
+              )}
+              <span className="px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100">
+                Sort: {activeSort === 'dueDate' ? 'Due Date' : 
+                      activeSort === 'name' ? 'Name' : 'Priority'}
+              </span>
             </div>
-            <input
-              id="project-search"
-              type="search"
-              className="block w-full p-3 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-blue-500 focus:border-blue-500 shadow-sm hover:shadow-md transition-all"
-              placeholder="Search projects by name, client, task, status, priority..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyDown={handleSearchKeyDown}
-              aria-label="Search projects"
-            />
-            {searchTerm && (
-              <button
-                className="absolute inset-y-0 right-0 flex items-center pr-3"
-                onClick={() => setSearchTerm('')}
-                aria-label="Clear search"
-              >
-                <svg className="w-4 h-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-              </button>
-            )}
-          </div>
-          {/* Keyboard shortcut hint */}
-          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            Press Ctrl+F (or ⌘+F on Mac) to search, Esc to clear
-          </div>
+          )}
         </div>
 
-        {/* Filter and Sort Controls */}
-        <div className="flex flex-col md:flex-row gap-4 p-6 mt-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Filter by Status</label>
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => setActiveFilter('all')}
-                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300 ${
-                  activeFilter === 'all' 
-                    ? 'bg-blue-600 text-white shadow-md scale-105' 
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                }`}
-              >
-                All
-              </button>
-              <button
-                onClick={() => setActiveFilter('on-track')}
-                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300 ${
-                  activeFilter === 'on-track' 
-                    ? 'bg-green-600 text-white shadow-md scale-105' 
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                }`}
-              >
-                On Track
-              </button>
-              <button
-                onClick={() => setActiveFilter('at-risk')}
-                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300 ${
-                  activeFilter === 'at-risk' 
-                    ? 'bg-yellow-500 text-white shadow-md scale-105' 
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                }`}
-              >
-                At Risk
-              </button>
-              <button
-                onClick={() => setActiveFilter('delayed')}
-                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300 ${
-                  activeFilter === 'delayed' 
-                    ? 'bg-red-600 text-white shadow-md scale-105' 
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                }`}
-              >
-                Delayed
-              </button>
-              <button
-                onClick={() => setActiveFilter('completed')}
-                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300 ${
-                  activeFilter === 'completed' 
-                    ? 'bg-purple-600 text-white shadow-md scale-105' 
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                }`}
-              >
-                Completed
-              </button>
+        {/* Filter and Sort Controls with Search - Now Collapsible */}
+        <div 
+          id="filter-panel"
+          className={`overflow-hidden transition-all duration-300 ease-in-out ${
+            showFilters 
+              ? 'max-h-[1000px] opacity-100 mt-4' 
+              : 'max-h-0 opacity-0 mt-0'
+          }`}
+        >
+          {/* Search Bar - Moved inside collapsible panel */}
+          <div className="w-full max-w-md mx-auto md:mx-0 mb-4 animate-fade-in">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                  <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
+                </svg>
+              </div>
+              <input
+                id="project-search"
+                type="search"
+                className="block w-full p-3 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-blue-500 focus:border-blue-500 shadow-sm hover:shadow-md transition-all"
+                placeholder="Search projects by name, client, task, status, priority..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
+                aria-label="Search projects"
+              />
+              {searchTerm && (
+                <button
+                  className="absolute inset-y-0 right-0 flex items-center pr-3"
+                  onClick={() => setSearchTerm('')}
+                  aria-label="Clear search"
+                >
+                  <svg className="w-4 h-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                </button>
+              )}
+            </div>
+            {/* Keyboard shortcut hint */}
+            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Press Ctrl+F (or ⌘+F on Mac) to search, Esc to clear
             </div>
           </div>
 
-          {/* Client Type Filter */}
-          <div className="md:ml-6">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Client Type</label>
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => setActiveClientTypeFilter('all')}
-                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300 ${
-                  activeClientTypeFilter === 'all' 
-                    ? 'bg-blue-600 text-white shadow-md scale-105' 
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                }`}
-              >
-                All
-              </button>
-              <button
-                onClick={() => setActiveClientTypeFilter('private')}
-                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300 ${
-                  activeClientTypeFilter === 'private' 
-                    ? 'bg-indigo-600 text-white shadow-md scale-105' 
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                }`}
-              >
-                Private
-              </button>
-              <button
-                onClick={() => setActiveClientTypeFilter('public')}
-                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300 ${
-                  activeClientTypeFilter === 'public' 
-                    ? 'bg-teal-600 text-white shadow-md scale-105' 
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                }`}
-              >
-                Public
-              </button>
+          <div className="flex flex-col md:flex-row gap-4 p-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Filter by Status</label>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setActiveFilter('all')}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300 ${
+                    activeFilter === 'all' 
+                      ? 'bg-blue-600 text-white shadow-md scale-105' 
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => setActiveFilter('on-track')}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300 ${
+                    activeFilter === 'on-track' 
+                      ? 'bg-green-600 text-white shadow-md scale-105' 
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  On Track
+                </button>
+                <button
+                  onClick={() => setActiveFilter('at-risk')}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300 ${
+                    activeFilter === 'at-risk' 
+                      ? 'bg-yellow-500 text-white shadow-md scale-105' 
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  At Risk
+                </button>
+                <button
+                  onClick={() => setActiveFilter('delayed')}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300 ${
+                    activeFilter === 'delayed' 
+                      ? 'bg-red-600 text-white shadow-md scale-105' 
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  Delayed
+                </button>
+                <button
+                  onClick={() => setActiveFilter('completed')}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300 ${
+                    activeFilter === 'completed' 
+                      ? 'bg-purple-600 text-white shadow-md scale-105' 
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  Completed
+                </button>
+              </div>
             </div>
-          </div>
 
-          <div className="md:ml-auto">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Sort by</label>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setActiveSort('dueDate')}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-300 ${
-                  activeSort === 'dueDate' 
-                    ? 'bg-blue-600 text-white shadow-md scale-105' 
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                }`}
-              >
-                Due Date
-              </button>
-              <button
-                onClick={() => setActiveSort('name')}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-300 ${
-                  activeSort === 'name' 
-                    ? 'bg-blue-600 text-white shadow-md scale-105' 
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                }`}
-              >
-                Name
-              </button>
-              <button
-                onClick={() => setActiveSort('priority')}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-300 ${
-                  activeSort === 'priority' 
-                    ? 'bg-blue-600 text-white shadow-md scale-105' 
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                }`}
-              >
-                Priority
-              </button>
+            {/* Client Type Filter */}
+            <div className="md:ml-6">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Client Type</label>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setActiveClientTypeFilter('all')}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300 ${
+                    activeClientTypeFilter === 'all' 
+                      ? 'bg-blue-600 text-white shadow-md scale-105' 
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => setActiveClientTypeFilter('private')}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300 ${
+                    activeClientTypeFilter === 'private' 
+                      ? 'bg-indigo-600 text-white shadow-md scale-105' 
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  Private
+                </button>
+                <button
+                  onClick={() => setActiveClientTypeFilter('public')}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300 ${
+                    activeClientTypeFilter === 'public' 
+                      ? 'bg-teal-600 text-white shadow-md scale-105' 
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  Public
+                </button>
+              </div>
+            </div>
+
+            <div className="md:ml-auto">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Sort by</label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setActiveSort('dueDate')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-300 ${
+                    activeSort === 'dueDate' 
+                      ? 'bg-blue-600 text-white shadow-md scale-105' 
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  Due Date
+                </button>
+                <button
+                  onClick={() => setActiveSort('name')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-300 ${
+                    activeSort === 'name' 
+                      ? 'bg-blue-600 text-white shadow-md scale-105' 
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  Name
+                </button>
+                <button
+                  onClick={() => setActiveSort('priority')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-300 ${
+                    activeSort === 'priority' 
+                      ? 'bg-blue-600 text-white shadow-md scale-105' 
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  Priority
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Show search results count when searching */}
-        {searchTerm && (
+        {searchTerm && showFilters && (
           <div className="text-sm text-gray-600 dark:text-gray-400 mt-4 animate-fade-in">
             Found {filteredProjects.length} project{filteredProjects.length !== 1 ? 's' : ''} matching "{searchTerm}"
           </div>
@@ -556,7 +617,10 @@ export default function ProjectBoard({ projects, onUpdateProjects, teamMembers, 
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-6 mt-6 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 400px)' }}>
+        <div 
+          className="grid grid-cols-1 gap-6 mt-6 overflow-y-auto" 
+          style={{ maxHeight: showFilters ? 'calc(100vh - 400px)' : 'calc(100vh - 250px)' }}
+        >
           {sortedProjects.map((project) => (
             <ProjectItem 
               key={project.id} 

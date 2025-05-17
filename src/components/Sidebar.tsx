@@ -31,14 +31,20 @@ export default function Sidebar({
         isCollapsed ? 'w-20' : 'w-72'
       }`}
     >
-      {/* Logo and Header */}
+      {/* Logo and Header - Replaced with Title */}
       <div className="py-6 px-4 flex items-center justify-center border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-[#1A3671] to-[#2A4681] dark:from-gray-800 dark:to-gray-900 relative">
-        <div className={`${isCollapsed ? 'w-14 h-14' : 'w-44 h-16'} bg-white dark:bg-gray-800 rounded-xl p-2 flex items-center justify-center shadow-md transition-all duration-300 border border-white/20 dark:border-gray-700/50`}>
-          <img 
-            src="/images/logo.png"
-            alt="TraffMobility Logo"
-            className="w-full h-full object-contain"
-          />
+        <div className={`${isCollapsed ? 'w-14 h-14 flex-col text-xs text-center' : 'w-full h-16'} bg-transparent rounded-xl p-2 flex items-center justify-center transition-all duration-300`}>
+          {isCollapsed ? (
+            <>
+              <span className="font-bold text-white">TM</span>
+              <span className="font-bold text-white mt-1">Eng</span>
+            </>
+          ) : (
+            <div className="text-center">
+              <h1 className="text-xl font-bold text-white tracking-tight">Project Management Portal</h1>
+              <p className="text-xs text-blue-100 mt-1">TraffMobility Engineering Inc.</p>
+            </div>
+          )}
         </div>
         
         {/* Collapse toggle button */}
@@ -288,36 +294,38 @@ export default function Sidebar({
       )}
 
       {/* Bottom Actions Section */}
-      <div className="border-t border-gray-200 dark:border-gray-700 py-4 px-4">
+      <div className="border-t border-gray-200 dark:border-gray-700 py-4 px-4 flex justify-center">
         <button
           onClick={toggleDarkMode}
-          className="w-full flex items-center justify-center px-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
+          className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 flex items-center justify-center"
           aria-label="Toggle dark mode"
         >
           {isDarkMode ? (
-            <>
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isCollapsed ? 'mx-auto' : 'mr-3'}>
-                <circle cx="12" cy="12" r="5"></circle>
-                <line x1="12" y1="1" x2="12" y2="3"></line>
-                <line x1="12" y1="21" x2="12" y2="23"></line>
-                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-                <line x1="1" y1="12" x2="3" y2="12"></line>
-                <line x1="21" y1="12" x2="23" y2="12"></line>
-                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-              </svg>
-              {!isCollapsed && <span>Light Mode</span>}
-            </>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
           ) : (
-            <>
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isCollapsed ? 'mx-auto' : 'mr-3'}>
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-              </svg>
-              {!isCollapsed && <span>Dark Mode</span>}
-            </>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
           )}
         </button>
+      </div>
+
+      {/* Copyright Notice - Moved to bottom */}
+      <div className="mt-auto border-t border-gray-200 dark:border-gray-700 py-2 px-4 text-center">
+        <div className="text-xs text-gray-500 dark:text-gray-400">
+          <span>© {new Date().getFullYear()} TraffMobility Engineering Inc.</span>
+          <div className="text-[10px]">All Rights Reserved</div>
+        </div>
       </div>
     </div>
   );
