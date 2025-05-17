@@ -4,12 +4,15 @@ import { useState, useEffect } from 'react';
 import { Project, ProjectStatus, ProjectPriority, TeamMember, Note } from '../lib/types';
 import KanbanBoard from './KanbanBoard';
 import ConfirmationDialog from './ConfirmationDialog';
+import HighlightedText from './HighlightedText';
 
 interface ProjectItemProps {
   project: Project;
   onUpdate: (project: Project) => void;
   onDelete: (projectId: string) => void;
   teamMembers?: TeamMember[]; // All team members for lookup
+  searchTerm?: string; // Optional search term for highlighting
+  onProjectSelect?: (project: Project) => void; // Add this prop
 }
 
 // Status badge colors
@@ -27,7 +30,7 @@ const priorityColors: Record<ProjectPriority, string> = {
   'low': 'bg-blue-500'
 };
 
-export default function ProjectItem({ project, onUpdate, onDelete, teamMembers = [] }: ProjectItemProps) {
+export default function ProjectItem({ project, onUpdate, onDelete, teamMembers = [], searchTerm = '', onProjectSelect = () => {} }: ProjectItemProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(project.name);
@@ -94,8 +97,11 @@ export default function ProjectItem({ project, onUpdate, onDelete, teamMembers =
       id: Date.now().toString(),
       content: newNoteContent,
       timestamp: new Date().toISOString(),
-      authorId: selectedAuthorId || undefined,
+      // Only include authorId field if selectedAuthorId has a value
+      ...(selectedAuthorId ? { authorId: selectedAuthorId } : {})
     };
+    
+    console.log('Adding note:', newNote);
     
     // Add to project notes
     const updatedNotes = [...(project.notes || []), newNote];
@@ -291,12 +297,17 @@ export default function ProjectItem({ project, onUpdate, onDelete, teamMembers =
     setNoteToDelete('');
   };
 
+  const handleExpandClick = () => {
+    setIsExpanded(!isExpanded);
+    onProjectSelect(project);
+  };
+
   return (
-    <div className={`border rounded-lg overflow-hidden bg-white dark:bg-gray-800 shadow-sm transition-all hover:shadow-md ${
+    <div className={`border rounded-xl overflow-hidden bg-white dark:bg-gray-800 shadow-md transition-all duration-300 hover:shadow-xl group ${
       project.priority === 'high' ? 'border-l-4 border-l-red-500' : 
       project.priority === 'medium' ? 'border-l-4 border-l-yellow-500' : 
       project.priority === 'low' ? 'border-l-4 border-l-blue-500' : ''
-    }`}>
+    } animate-fade-in`}>
       {/* Confirmation Dialogs */}
       <ConfirmationDialog
         isOpen={isDeleteDialogOpen}
@@ -314,7 +325,7 @@ export default function ProjectItem({ project, onUpdate, onDelete, teamMembers =
         onCancel={cancelNoteDelete}
       />
 
-      <div className="bg-gray-50 dark:bg-gray-700 p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="bg-gradient-to-r from-gray-50 to-white dark:from-gray-700 dark:to-gray-800 p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative">
         {isEditing ? (
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 w-full">
             <div className="lg:col-span-2">
@@ -443,31 +454,38 @@ export default function ProjectItem({ project, onUpdate, onDelete, teamMembers =
           </div>
         ) : (
           <div className="flex-1">
-            <div className="flex flex-wrap items-center gap-2 mb-1">
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{project.name}</h3>
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                <HighlightedText text={project.name} highlight={searchTerm} />
+              </h3>
               {project.status && (
-                <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusColors[project.status].bg} ${statusColors[project.status].text}`}>
-                  {statusLabel(project.status)}
+                <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${statusColors[project.status].bg} ${statusColors[project.status].text} shadow-sm`}>
+                  <HighlightedText text={statusLabel(project.status)} highlight={searchTerm} />
                 </span>
               )}
               {project.priority && (
-                <span className="flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200">
+                <span className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 shadow-sm">
                   <span className={`w-2 h-2 rounded-full ${priorityColors[project.priority]}`}></span>
-                  {priorityLabel(project.priority)} Priority
+                  <HighlightedText text={priorityLabel(project.priority)} highlight={searchTerm} /> Priority
                 </span>
               )}
               {project.clientType && (
-                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                <span className={`px-2.5 py-1 text-xs font-medium rounded-full shadow-sm ${
                   project.clientType === 'private' 
-                    ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-100' 
-                    : 'bg-teal-100 dark:bg-teal-900 text-teal-800 dark:text-teal-100'
+                    ? 'bg-indigo-100 dark:bg-indigo-900/70 text-indigo-800 dark:text-indigo-100' 
+                    : 'bg-teal-100 dark:bg-teal-900/70 text-teal-800 dark:text-teal-100'
                 }`}>
-                  {project.clientType === 'private' ? 'Private Client' : 'Public Client'}
+                  <HighlightedText 
+                    text={project.clientType === 'private' ? 'Private Client' : 'Public Client'} 
+                    highlight={searchTerm} 
+                  />
                 </span>
               )}
             </div>
-            <div className="flex flex-col md:flex-row md:gap-4 text-gray-600 dark:text-gray-300 text-sm mt-1">
-              <div className="font-medium">{project.client}</div>
+            <div className="flex flex-col md:flex-row md:gap-4 text-gray-600 dark:text-gray-300 text-sm mt-2">
+              <div className="font-medium">
+                <HighlightedText text={project.client} highlight={searchTerm} />
+              </div>
               <div className="flex flex-col md:flex-row md:items-center">
                 {project.startDate && (
                   <div className="flex items-center">
@@ -480,14 +498,14 @@ export default function ProjectItem({ project, onUpdate, onDelete, teamMembers =
                     <span className="hidden md:inline mx-2 text-gray-400 dark:text-gray-500">•</span>
                     <span className="font-medium">Due: {formatDate(project.dueDate)}</span>
                     {project.status === 'completed' ? (
-                      <span className="ml-2 px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
+                      <span className="ml-2 px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900/70 dark:text-green-100">
                         Completed
                       </span>
                     ) : (
                       <span className={`ml-2 px-2 py-0.5 text-xs font-medium rounded-full ${
-                        daysRemaining < 0 ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100' : 
-                        daysRemaining < 7 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100' : 
-                        'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100'
+                        daysRemaining < 0 ? 'bg-red-100 text-red-800 dark:bg-red-900/70 dark:text-red-100' : 
+                        daysRemaining < 7 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/70 dark:text-yellow-100' : 
+                        'bg-blue-100 text-blue-800 dark:bg-blue-900/70 dark:text-blue-100'
                       }`}>
                         {daysRemaining < 0 
                           ? `${Math.abs(daysRemaining)} days overdue` 
@@ -547,15 +565,15 @@ export default function ProjectItem({ project, onUpdate, onDelete, teamMembers =
             </>
           ) : (
             <>
-              <div className="flex items-center gap-2 mr-2">
-                <div className="w-32 bg-gray-200 dark:bg-gray-600 rounded-full h-2.5 overflow-hidden">
+              <div className="flex items-center gap-2 mr-3">
+                <div className="w-36 bg-gray-200 dark:bg-gray-600 rounded-full h-3 overflow-hidden shadow-inner">
                   <div 
-                    className={`h-2.5 rounded-full ${
-                      progress >= 75 ? 'bg-green-600' : 
-                      progress >= 50 ? 'bg-blue-600' : 
-                      progress >= 25 ? 'bg-yellow-500' : 
-                      'bg-red-600'
-                    }`}
+                    className={`h-3 rounded-full ${
+                      progress >= 75 ? 'bg-gradient-to-r from-green-500 to-green-600' : 
+                      progress >= 50 ? 'bg-gradient-to-r from-blue-500 to-blue-600' : 
+                      progress >= 25 ? 'bg-gradient-to-r from-yellow-400 to-yellow-500' : 
+                      'bg-gradient-to-r from-red-500 to-red-600'
+                    } transition-all duration-1000 ease-in-out`}
                     style={{ width: `${progress}%` }}
                   ></div>
                 </div>
@@ -563,7 +581,7 @@ export default function ProjectItem({ project, onUpdate, onDelete, teamMembers =
               </div>
               <button
                 onClick={() => setIsEditing(true)}
-                className="p-2 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
+                className="p-2 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-full transition-colors"
                 title="Edit Project"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -572,7 +590,7 @@ export default function ProjectItem({ project, onUpdate, onDelete, teamMembers =
               </button>
               <button
                 onClick={handleDeleteClick}
-                className="p-2 text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400"
+                className="p-2 text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-full transition-colors"
                 title="Delete Project"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -582,8 +600,8 @@ export default function ProjectItem({ project, onUpdate, onDelete, teamMembers =
                 </svg>
               </button>
               <button
-                onClick={() => setIsExpanded(!isExpanded)}
-                className="p-2 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
+                onClick={handleExpandClick}
+                className="p-2 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-full transition-colors"
                 title={isExpanded ? "Collapse tasks" : "Expand tasks"}
               >
                 {isExpanded ? (
@@ -612,6 +630,9 @@ export default function ProjectItem({ project, onUpdate, onDelete, teamMembers =
               tasks={project.tasks}
               teamMembers={teamMembers}
               onTasksUpdate={handleTasksUpdate}
+              onAddTask={handleAddTask}
+              onDeleteTask={handleDeleteTask}
+              searchTerm={searchTerm}
             />
           </div>
           
@@ -671,9 +692,10 @@ export default function ProjectItem({ project, onUpdate, onDelete, teamMembers =
                     </button>
                   </div>
                   
-                  {selectedAuthorId && (
-                    <div className="flex items-center gap-1.5 text-xs ml-1 text-gray-500 dark:text-gray-400">
-                      {getTeamMemberById(selectedAuthorId) && (
+                  {/* Show posting information */}
+                  <div className="flex items-center gap-1.5 text-xs ml-1 text-gray-500 dark:text-gray-400">
+                    {selectedAuthorId ? (
+                      getTeamMemberById(selectedAuthorId) && (
                         <>
                           <img 
                             src={getTeamMemberById(selectedAuthorId)!.avatar} 
@@ -682,9 +704,16 @@ export default function ProjectItem({ project, onUpdate, onDelete, teamMembers =
                           />
                           <span>Posting as {getTeamMemberById(selectedAuthorId)!.name}</span>
                         </>
-                      )}
-                    </div>
-                  )}
+                      )
+                    ) : (
+                      <>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        <span>Posting as System</span>
+                      </>
+                    )}
+                  </div>
                 </div>
                 
                 {/* Notes list */}
@@ -699,12 +728,16 @@ export default function ProjectItem({ project, onUpdate, onDelete, teamMembers =
                         <div key={note.id} className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
                           <div className="flex justify-between items-start mb-2">
                             <div className="flex items-center gap-2">
-                              {author && (
+                              {author ? (
                                 <img 
                                   src={author.avatar} 
                                   alt={author.name} 
                                   className="w-6 h-6 rounded-full"
                                 />
+                              ) : (
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                </svg>
                               )}
                               <span className="text-xs text-gray-500 dark:text-gray-400">
                                 {author ? author.name : 'System'} • {formatDate(note.timestamp)}

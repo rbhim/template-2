@@ -23,6 +23,8 @@ export default function GanttChart({ projects }: GanttChartProps) {
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'all'>('all');
   const [priorityFilter, setPriorityFilter] = useState<ProjectPriority | 'all'>('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [showTodayLine, setShowTodayLine] = useState(true);
+  const [todayLineHeight, setTodayLineHeight] = useState(0);
 
   // Prepare the date headers based on the selected time range
   useEffect(() => {
@@ -354,6 +356,44 @@ export default function GanttChart({ projects }: GanttChartProps) {
     setPriorityFilter('all');
   };
 
+  // Update today line height when projects change or when scrolling
+  useEffect(() => {
+    const updateTodayLineHeight = () => {
+      if (chartRef.current) {
+        const chartHeight = chartRef.current.scrollHeight;
+        setTodayLineHeight(chartHeight);
+      }
+    };
+
+    // Initial update
+    updateTodayLineHeight();
+
+    // Update when scrolling (in case of dynamic height changes)
+    const handleScroll = () => updateTodayLineHeight();
+    const chartElement = chartRef.current;
+    if (chartElement) {
+      chartElement.addEventListener('scroll', handleScroll);
+    }
+
+    // Add resize observer to handle container size changes
+    if (chartElement && window.ResizeObserver) {
+      const resizeObserver = new ResizeObserver(updateTodayLineHeight);
+      resizeObserver.observe(chartElement);
+      return () => {
+        if (chartElement) {
+          chartElement.removeEventListener('scroll', handleScroll);
+        }
+        resizeObserver.disconnect();
+      };
+    }
+    
+    return () => {
+      if (chartElement) {
+        chartElement.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, [filteredProjects, expandedProjectId]);
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 p-4 animate-fade-in shadow-md">
       {/* Timeline header with navigation & time range selector */}
@@ -414,6 +454,20 @@ export default function GanttChart({ projects }: GanttChartProps) {
               <option value="year">Year</option>
             </select>
           </div>
+
+          {/* Toggle Today Line button */}
+          <button
+            onClick={() => setShowTodayLine(!showTodayLine)}
+            className={`ml-2 flex items-center text-sm ${
+              showTodayLine ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'
+            } hover:underline`}
+            title={showTodayLine ? "Hide Today Line" : "Show Today Line"}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
+              <line x1="12" y1="2" x2="12" y2="22"></line>
+            </svg>
+            Today Line
+          </button>
 
           {/* Toggle filters button */}
           <button
@@ -514,20 +568,23 @@ export default function GanttChart({ projects }: GanttChartProps) {
 
         {/* Project Bars */}
         <div className="overflow-x-auto overflow-y-auto relative" style={{ maxHeight: '60vh' }} ref={chartRef}>
-          {/* Today's vertical line - rendered outside the scrollable div */}
-          {(() => {
+          {/* Today's vertical line */}
+          {showTodayLine && (() => {
             const todayPosition = getTodayPosition();
             if (todayPosition !== null) {
               return (
                 <div 
-                  className="absolute top-0 left-0 w-full h-full pointer-events-none z-10"
-                  style={{ paddingLeft: '25%' }} // Account for the left label column
+                  className="absolute top-0 left-0 w-full pointer-events-none z-10"
+                  style={{ 
+                    paddingLeft: '25%', // Account for the left label column
+                    height: '100%'
+                  }}
                 >
                   <div
                     className="absolute top-0 bottom-0 border-l-2 border-blue-600 dark:border-blue-500"
                     style={{ 
                       left: `${todayPosition * 0.75}%`, // Adjust for the label column (25% width)
-                      height: '100%',
+                      height: todayLineHeight || '100%',
                       pointerEvents: 'none'
                     }}
                     aria-label="Current date"

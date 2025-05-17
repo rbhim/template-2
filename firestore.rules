@@ -1,0 +1,20 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow read access to all documents for all users
+    match /{document=**} {
+      allow read: if true;
+    }
+    
+    // Allow write access to projects collection
+    match /projects/{projectId} {
+      allow write: if true;
+    }
+    
+    // Allow write access to team_members collection
+    match /team_members/{memberId} {
+      allow write: if true;
+    }
+  }
+} 

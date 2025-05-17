@@ -1,19 +1,22 @@
 # Traffic/Transportation Project Management App
 
-A modern project management dashboard for traffic/transportation engineering consulting firms. Visually track projects through customizable stages, manage tasks, teams, and deadlines, and gain insights with analytics and timelines.
+A modern project management dashboard for traffic/transportation engineering consulting firms. Visually track projects through customizable stages, manage tasks, teams, and deadlines, and gain insights with timelines.
 
 ## Features
 - **Project & Task Tracking:** Create, edit, and track projects through customizable stages (e.g., TOR submitted, Data collection, Analysis, etc.)
 - **Customizable Tasks:** Add, reorder, and group tasks; drag-and-drop support
 - **Status & Priority:** Color-coded status badges and priority indicators
-- **Dashboard Overview:** Tabbed interface for Dashboard, Timeline (Gantt), Team, Task Categories, and Analytics
+- **Dashboard Overview:** Tabbed interface for Dashboard, Timeline (Gantt), and Team management
 - **Gantt Chart:** Visual timeline of project stages and deadlines
-- **Analytics:** Project stats, donut/bar charts, deadlines, and progress
 - **Team Management:** Assign team members, manage roles, and display avatars
 - **Task Categories:** Custom categories and grouping for tasks
 - **Notes:** Add and manage project notes with author attribution
 - **Dark Mode:** Fully supported, toggleable
-- **Modern UI/UX:** Responsive, accessible, and visually appealing
+- **User Experience:** 
+  - Confirmation dialogs for all deletion actions (projects, tasks, notes, team members)
+  - Unsaved changes protection when canceling forms
+  - Responsive, accessible, and visually appealing interface
+  - Animated transitions and hover effects
 
 ## Tech Stack
 - **Next.js 14 App Router** (React, SSR/SSG, API routes)
@@ -28,7 +31,7 @@ A modern project management dashboard for traffic/transportation engineering con
   /app
     page.tsx, layout.tsx         # Main app entry and layout
     /api                        # API routes (OpenAI, Anthropic, Replicate, Deepgram, etc.)
-    /components                 # All React components (ProjectBoard, ProjectItem, TaskList, GanttChart, ProjectStats, TeamSection, TaskCategoryManager, etc.)
+    /components                 # All React components (ProjectBoard, ProjectItem, KanbanBoard, GanttChart, TeamSection, etc.)
     /lib                        # Types, helpers, hooks, and contexts (Firebase, Auth, Deepgram, etc.)
 ```
 

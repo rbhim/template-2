@@ -142,6 +142,7 @@ export default function CSVImport({ onImportProjects, onClose }: CSVImportProps)
         id: Date.now().toString() + i, // Generate unique ID
         name: rowData.name,
         client: rowData.client,
+        clientType: clientType === 'private' ? 'private' : 'public',
         startDate: rowData.startDate,
         dueDate: rowData.dueDate,
         status,

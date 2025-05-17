@@ -46,4 +46,6 @@ export interface Project {
   milestones?: Milestone[]; // Project milestones
   notes?: Note[]; // Updated to array of Note objects
   assignedTeam?: string[]; // Array of team member IDs
+  createdAt?: string; // ISO date string for project creation time
+  updatedAt?: string; // ISO date string for last update time
 } 

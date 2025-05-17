@@ -12,6 +12,8 @@ You are an expert in TypeScript, Next.js App Router, React, and Tailwind. Follow
   - Status badges, color coding, dark mode, and animated transitions
   - Filtering, sorting, and drag-and-drop for tasks and categories
   - Data visualizations for project analytics
+  - Confirmation dialogs for all deletion actions (projects, tasks, team members, notes)
+  - Unsaved changes protection when canceling forms
 - Always use Next.js App Router (app directory), TailwindCSS, and TypeScript.
 - Use Vercel AI SDK for all AI/LLM interactions and streaming.
 - Firebase utilities are available but only use if persistent backend is required.
