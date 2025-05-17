@@ -6,6 +6,8 @@ import GanttChart from "../components/GanttChart";
 import TeamSection from "../components/TeamSection";
 import Sidebar from "../components/Sidebar";
 import { Project, Task, TeamMember } from "../lib/types";
+import StatsCard from "./components/StatsCard";
+import { BriefcaseIcon, CheckCircleIcon, ExclamationTriangleIcon, ClipboardIcon } from '@heroicons/react/24/outline';
 
 // Default tasks for private studies
 const DEFAULT_TASKS: Task[] = [
@@ -210,14 +212,47 @@ export default function Home() {
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Project Management Portal</h1>
         </div>
         
+        {/* Filter and sort bar remains */}
+        <div className="flex flex-wrap items-center justify-between mb-4 gap-2">
+          {/* ...filter and sort controls... */}
+        </div>
+        
         {/* Dynamic Content based on active tab */}
         <div className="flex-1">
           {activeTab === 'dashboard' && (
-            <ProjectBoard 
-              projects={projects}
-              onUpdateProjects={setProjects}
-              teamMembers={teamMembers}
-            />
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6 w-full">
+                <StatsCard
+                  icon={<BriefcaseIcon className="w-6 h-6" />}
+                  label="Total Projects"
+                  value={projects.length}
+                  colorClass="text-blue-600"
+                />
+                <StatsCard
+                  icon={<CheckCircleIcon className="w-6 h-6" />}
+                  label="On Track"
+                  value={projects.filter(p => p.status === 'on-track').length}
+                  colorClass="text-green-600"
+                />
+                <StatsCard
+                  icon={<ExclamationTriangleIcon className="w-6 h-6" />}
+                  label="At Risk / Delayed"
+                  value={projects.filter(p => p.status === 'at-risk' || p.status === 'delayed').length}
+                  colorClass="text-red-600"
+                />
+                <StatsCard
+                  icon={<ClipboardIcon className="w-6 h-6" />}
+                  label="Completed"
+                  value={projects.filter(p => p.status === 'completed').length}
+                  colorClass="text-purple-600"
+                />
+              </div>
+              <ProjectBoard 
+                projects={projects}
+                onUpdateProjects={setProjects}
+                teamMembers={teamMembers}
+              />
+            </>
           )}
 
           {activeTab === 'gantt' && (

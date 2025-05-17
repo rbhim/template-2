@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Project, TeamMember } from '../lib/types';
+import ConfirmationDialog from './ConfirmationDialog';
 
 interface TeamSectionProps {
   projects: Project[];
@@ -59,6 +60,12 @@ export default function TeamSection({ projects, initialTeamMembers = [], onUpdat
   const [uploadedEditImage, setUploadedEditImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editFileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Confirmation dialog states
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [memberToDelete, setMemberToDelete] = useState<string | null>(null);
+  const [isCancelAddDialogOpen, setIsCancelAddDialogOpen] = useState(false);
+  const [isCancelEditDialogOpen, setIsCancelEditDialogOpen] = useState(false);
   
   // Initialize team members from props or use default
   useEffect(() => {
@@ -187,6 +194,19 @@ export default function TeamSection({ projects, initialTeamMembers = [], onUpdat
   const deleteTeamMember = (id: string) => {
     const updatedMembers = teamMembers.filter(member => member.id !== id);
     updateTeamMembers(updatedMembers);
+    setIsDeleteDialogOpen(false);
+    setMemberToDelete(null);
+  };
+
+  // Show confirmation dialog for member deletion
+  const handleDeleteClick = (id: string) => {
+    setMemberToDelete(id);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const cancelDelete = () => {
+    setIsDeleteDialogOpen(false);
+    setMemberToDelete(null);
   };
 
   // Get projects for a member
@@ -284,6 +304,76 @@ export default function TeamSection({ projects, initialTeamMembers = [], onUpdat
     }
   };
 
+  // Check if new member form has any data
+  const hasUnsavedAddChanges = () => {
+    return newMember.name !== '' || 
+           newMember.email !== '' || 
+           newMember.selectedProjects.length > 0 || 
+           newMember.avatar !== defaultAvatar;
+  };
+
+  // Check if edit form has unsaved changes
+  const hasUnsavedEditChanges = (member: TeamMember) => {
+    const assignedProjects = projects
+      .filter(project => project.assignedTeam?.includes(member.id))
+      .map(project => project.id);
+      
+    return editForm.name !== member.name || 
+           editForm.role !== member.role || 
+           editForm.email !== member.email || 
+           editForm.avatar !== member.avatar ||
+           !arraysEqual(editForm.selectedProjects, assignedProjects);
+  };
+
+  // Helper to compare arrays
+  const arraysEqual = (a: string[], b: string[]) => {
+    if (a.length !== b.length) return false;
+    const sortedA = [...a].sort();
+    const sortedB = [...b].sort();
+    return sortedA.every((val, idx) => val === sortedB[idx]);
+  };
+
+  // Handle canceling add form
+  const handleCancelAdd = () => {
+    if (hasUnsavedAddChanges()) {
+      setIsCancelAddDialogOpen(true);
+    } else {
+      resetAddForm();
+    }
+  };
+
+  // Reset add form
+  const resetAddForm = () => {
+    setNewMember({
+      name: '',
+      role: 'Traffic Engineer',
+      email: '',
+      selectedProjects: [],
+      avatar: defaultAvatar,
+    });
+    setIsAddingMember(false);
+    setShowAvatarSelector(false);
+    setUploadMode('preset');
+    setUploadedImage(null);
+  };
+
+  // Handle canceling edit form
+  const handleCancelEdit = (member: TeamMember) => {
+    if (hasUnsavedEditChanges(member)) {
+      setIsCancelEditDialogOpen(true);
+    } else {
+      resetEditForm();
+    }
+  };
+
+  // Reset edit form
+  const resetEditForm = () => {
+    setEditingMemberId(null);
+    setShowEditAvatarSelector(false);
+    setUploadMode('preset');
+    setUploadedEditImage(null);
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Tab Navigation */}
@@ -312,6 +402,41 @@ export default function TeamSection({ projects, initialTeamMembers = [], onUpdat
         </div>
       </div>
 
+      {/* Confirmation Dialogs */}
+      <ConfirmationDialog
+        isOpen={isDeleteDialogOpen}
+        title="Delete Team Member"
+        message={memberToDelete ? `Are you sure you want to delete ${teamMembers.find(m => m.id === memberToDelete)?.name || 'this team member'}? This action cannot be undone.` : "Are you sure you want to delete this team member?"}
+        onConfirm={() => memberToDelete && deleteTeamMember(memberToDelete)}
+        onCancel={cancelDelete}
+      />
+
+      <ConfirmationDialog
+        isOpen={isCancelAddDialogOpen}
+        title="Discard Changes"
+        message="You have unsaved changes. Are you sure you want to discard them?"
+        onConfirm={() => {
+          setIsCancelAddDialogOpen(false);
+          resetAddForm();
+        }}
+        onCancel={() => setIsCancelAddDialogOpen(false)}
+        confirmText="Discard"
+        confirmButtonClass="bg-yellow-600 hover:bg-yellow-700"
+      />
+
+      <ConfirmationDialog
+        isOpen={isCancelEditDialogOpen}
+        title="Discard Changes"
+        message="You have unsaved changes. Are you sure you want to discard them?"
+        onConfirm={() => {
+          setIsCancelEditDialogOpen(false);
+          resetEditForm();
+        }}
+        onCancel={() => setIsCancelEditDialogOpen(false)}
+        confirmText="Discard"
+        confirmButtonClass="bg-yellow-600 hover:bg-yellow-700"
+      />
+
       {/* Team Members View */}
       {activeTab === 'members' && (
         <div className="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 p-4 shadow-md">
@@ -319,18 +444,13 @@ export default function TeamSection({ projects, initialTeamMembers = [], onUpdat
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Team Members</h3>
             <button 
               onClick={() => {
-                setIsAddingMember(!isAddingMember);
-                if (isAddingMember) {
-                  // If closing the form, reset states
-                  setShowAvatarSelector(false);
-                  setShowCustomRoleInput(false);
-                  setNewMember({
-                    name: '',
-                    role: 'Traffic Engineer',
-                    email: '',
-                    selectedProjects: [],
-                    avatar: defaultAvatar, // Default generic avatar
-                  });
+                if (isAddingMember && hasUnsavedAddChanges()) {
+                  setIsCancelAddDialogOpen(true);
+                } else {
+                  setIsAddingMember(!isAddingMember);
+                  if (isAddingMember) {
+                    resetAddForm();
+                  }
                 }
               }}
               className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
@@ -575,12 +695,22 @@ export default function TeamSection({ projects, initialTeamMembers = [], onUpdat
                 </div>
               </div>
 
-              <button
-                onClick={addTeamMember}
-                className="px-3 py-1.5 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
-              >
-                Add Team Member
-              </button>
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  onClick={handleCancelAdd}
+                  className="px-4 py-2 border dark:border-gray-600 rounded text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  onClick={addTeamMember}
+                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                  disabled={!newMember.name || !newMember.email}
+                >
+                  Add Team Member
+                </button>
+              </div>
             </div>
           )}
 
@@ -841,12 +971,7 @@ export default function TeamSection({ projects, initialTeamMembers = [], onUpdat
                           Save
                         </button>
                         <button
-                          onClick={() => {
-                            setEditingMemberId(null);
-                            setShowEditAvatarSelector(false);
-                            setUploadMode('preset');
-                            setUploadedEditImage(null);
-                          }}
+                          onClick={() => handleCancelEdit(member)}
                           className="px-2 py-1 border text-xs rounded hover:bg-gray-50 dark:hover:bg-gray-700"
                         >
                           Cancel
@@ -888,7 +1013,7 @@ export default function TeamSection({ projects, initialTeamMembers = [], onUpdat
                             </svg>
                           </button>
                           <button
-                            onClick={() => deleteTeamMember(member.id)}
+                            onClick={() => handleDeleteClick(member.id)}
                             className="p-1 text-gray-600 dark:text-gray-400 hover:text-red-600"
                             aria-label="Delete member"
                           >

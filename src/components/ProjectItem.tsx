@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { Project, ProjectStatus, ProjectPriority, TeamMember, Note } from '../lib/types';
-import TaskList from './TaskList';
 import KanbanBoard from './KanbanBoard';
+import ConfirmationDialog from './ConfirmationDialog';
 
 interface ProjectItemProps {
   project: Project;
@@ -42,7 +42,11 @@ export default function ProjectItem({ project, onUpdate, onDelete, teamMembers =
   const [newNoteContent, setNewNoteContent] = useState('');
   const [isNotesExpanded, setIsNotesExpanded] = useState(true);
   const [selectedAuthorId, setSelectedAuthorId] = useState<string>('');
-  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
+  
+  // Confirmation dialog states
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleteNoteDialogOpen, setIsDeleteNoteDialogOpen] = useState(false);
+  const [noteToDelete, setNoteToDelete] = useState<string>('');
 
   useEffect(() => {
     setEditedName(project.name);
@@ -252,12 +256,64 @@ export default function ProjectItem({ project, onUpdate, onDelete, teamMembers =
     });
   };
 
+  // New function to handle delete confirmation
+  const handleDeleteClick = () => {
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    onDelete(project.id);
+    setIsDeleteDialogOpen(false);
+  };
+  
+  const cancelDelete = () => {
+    setIsDeleteDialogOpen(false);
+  };
+
+  // New function to handle note delete confirmation
+  const handleDeleteNoteClick = (noteId: string) => {
+    setNoteToDelete(noteId);
+    setIsDeleteNoteDialogOpen(true);
+  };
+
+  const confirmNoteDelete = () => {
+    const updatedNotes = (project.notes || []).filter(note => note.id !== noteToDelete);
+    
+    onUpdate({
+      ...project,
+      notes: updatedNotes,
+    });
+    setIsDeleteNoteDialogOpen(false);
+  };
+  
+  const cancelNoteDelete = () => {
+    setIsDeleteNoteDialogOpen(false);
+    setNoteToDelete('');
+  };
+
   return (
     <div className={`border rounded-lg overflow-hidden bg-white dark:bg-gray-800 shadow-sm transition-all hover:shadow-md ${
       project.priority === 'high' ? 'border-l-4 border-l-red-500' : 
       project.priority === 'medium' ? 'border-l-4 border-l-yellow-500' : 
       project.priority === 'low' ? 'border-l-4 border-l-blue-500' : ''
     }`}>
+      {/* Confirmation Dialogs */}
+      <ConfirmationDialog
+        isOpen={isDeleteDialogOpen}
+        title="Delete Project"
+        message={`Are you sure you want to delete "${project.name}"? This action cannot be undone.`}
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+      />
+
+      <ConfirmationDialog
+        isOpen={isDeleteNoteDialogOpen}
+        title="Delete Note"
+        message="Are you sure you want to delete this note? This action cannot be undone."
+        onConfirm={confirmNoteDelete}
+        onCancel={cancelNoteDelete}
+      />
+
       <div className="bg-gray-50 dark:bg-gray-700 p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         {isEditing ? (
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 w-full">
@@ -515,7 +571,7 @@ export default function ProjectItem({ project, onUpdate, onDelete, teamMembers =
                 </svg>
               </button>
               <button
-                onClick={() => onDelete(project.id)}
+                onClick={handleDeleteClick}
                 className="p-2 text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400"
                 title="Delete Project"
               >
@@ -550,45 +606,13 @@ export default function ProjectItem({ project, onUpdate, onDelete, teamMembers =
           <div className="mb-6">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Tasks</h3>
-              <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-md p-1">
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`px-3 py-1 text-sm rounded-md ${
-                    viewMode === 'list' 
-                      ? 'bg-white dark:bg-gray-600 shadow-sm' 
-                      : 'text-gray-600 dark:text-gray-300'
-                  }`}
-                >
-                  List
-                </button>
-                <button
-                  onClick={() => setViewMode('kanban')}
-                  className={`px-3 py-1 text-sm rounded-md ${
-                    viewMode === 'kanban' 
-                      ? 'bg-white dark:bg-gray-600 shadow-sm' 
-                      : 'text-gray-600 dark:text-gray-300'
-                  }`}
-                >
-                  Board
-                </button>
-              </div>
             </div>
             
-            {viewMode === 'list' ? (
-              <TaskList 
-                tasks={project.tasks} 
-                onTaskUpdate={handleTaskUpdate}
-                onTaskReorder={handleTaskReorder}
-                onTaskAdd={handleAddTask}
-                onTaskDelete={handleDeleteTask}
-              />
-            ) : (
-              <KanbanBoard
-                tasks={project.tasks}
-                teamMembers={teamMembers}
-                onTasksUpdate={handleTasksUpdate}
-              />
-            )}
+            <KanbanBoard
+              tasks={project.tasks}
+              teamMembers={teamMembers}
+              onTasksUpdate={handleTasksUpdate}
+            />
           </div>
           
           {/* Notes Section with collapse toggle */}
@@ -687,7 +711,7 @@ export default function ProjectItem({ project, onUpdate, onDelete, teamMembers =
                               </span>
                             </div>
                             <button
-                              onClick={() => handleDeleteNote(note.id)}
+                              onClick={() => handleDeleteNoteClick(note.id)}
                               className="text-gray-400 hover:text-red-500 dark:hover:text-red-400"
                             >
                               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

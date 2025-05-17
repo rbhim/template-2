@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Task, TeamMember } from '../lib/types';
+import ConfirmationDialog from './ConfirmationDialog';
 
 // Task status options
 export type TaskStatus = 'todo' | 'in-progress' | 'review' | 'completed';
@@ -28,6 +29,10 @@ export default function KanbanBoard({ tasks, teamMembers, onTasksUpdate }: Kanba
   const [newTaskName, setNewTaskName] = useState('');
   const [addingToColumn, setAddingToColumn] = useState<TaskStatus | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  
+  // Confirmation dialog state
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<KanbanTask | null>(null);
 
   // Initialize kanban tasks from regular tasks
   useEffect(() => {
@@ -312,6 +317,34 @@ export default function KanbanBoard({ tasks, teamMembers, onTasksUpdate }: Kanba
     }
   };
 
+  // Handle task deletion after confirmation
+  const confirmDeleteTask = () => {
+    if (!taskToDelete) return;
+    
+    // Filter out the task to delete
+    const updatedTasks = kanbanTasks.filter(t => t.id !== taskToDelete.id);
+    
+    // Update the order of remaining tasks in the same column
+    const reorderedTasks = updatedTasks
+      .map((t, idx) => {
+        // Only reorder tasks in the same column as the deleted task
+        if (t.status === taskToDelete.status) {
+          return { ...t, order: idx + 1 };
+        }
+        return t;
+      });
+    
+    setKanbanTasks(reorderedTasks);
+    updateOriginalTasks(reorderedTasks);
+    setIsDeleteDialogOpen(false);
+    setTaskToDelete(null);
+  };
+
+  const cancelDeleteTask = () => {
+    setIsDeleteDialogOpen(false);
+    setTaskToDelete(null);
+  };
+
   // Task card component
   const TaskCard = ({ task }: { task: KanbanTask }) => {
     const assignedMember = getTeamMember(task.assignedTo);
@@ -328,23 +361,10 @@ export default function KanbanBoard({ tasks, teamMembers, onTasksUpdate }: Kanba
       setIsMenuOpen(false);
     };
 
-    // Handle task deletion
-    const handleDeleteTask = () => {
-      // Filter out the task to delete
-      const updatedTasks = kanbanTasks.filter(t => t.id !== task.id);
-      
-      // Update the order of remaining tasks in the same column
-      const reorderedTasks = updatedTasks
-        .map((t, idx) => {
-          // Only reorder tasks in the same column as the deleted task
-          if (t.status === task.status) {
-            return { ...t, order: idx + 1 };
-          }
-          return t;
-        });
-      
-      setKanbanTasks(reorderedTasks);
-      updateOriginalTasks(reorderedTasks);
+    // Show confirmation dialog for task deletion
+    const handleDeleteClick = () => {
+      setTaskToDelete(task);
+      setIsDeleteDialogOpen(true);
       setIsMenuOpen(false);
     };
 
@@ -425,7 +445,7 @@ export default function KanbanBoard({ tasks, teamMembers, onTasksUpdate }: Kanba
                     
                     <button 
                       className="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-600"
-                      onClick={handleDeleteTask}
+                      onClick={handleDeleteClick}
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -580,28 +600,28 @@ export default function KanbanBoard({ tasks, teamMembers, onTasksUpdate }: Kanba
   };
 
   return (
-    <div className="mt-6">
-      <div className="flex overflow-x-auto gap-4 pb-4">
-        <Column 
-          status="todo" 
-          title="To Do" 
-          count={getTasksByStatus('todo').length} 
-        />
-        <Column 
-          status="in-progress" 
-          title="In Progress" 
-          count={getTasksByStatus('in-progress').length} 
-        />
-        <Column 
-          status="review" 
-          title="Review" 
-          count={getTasksByStatus('review').length} 
-        />
-        <Column 
-          status="completed" 
-          title="Completed" 
-          count={getTasksByStatus('completed').length} 
-        />
+    <div className="w-full">
+      {/* Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={isDeleteDialogOpen}
+        title="Delete Task"
+        message={taskToDelete ? `Are you sure you want to delete "${taskToDelete.name}"? This action cannot be undone.` : "Are you sure you want to delete this task?"}
+        onConfirm={confirmDeleteTask}
+        onCancel={cancelDeleteTask}
+      />
+
+      <div className="flex flex-col md:flex-row gap-4 pb-2 overflow-x-auto min-h-[500px]">
+        {/* Todo Column */}
+        <Column status="todo" title="To Do" count={getTasksByStatus('todo').length} />
+        
+        {/* In Progress Column */}
+        <Column status="in-progress" title="In Progress" count={getTasksByStatus('in-progress').length} />
+        
+        {/* Review Column */}
+        <Column status="review" title="Review" count={getTasksByStatus('review').length} />
+        
+        {/* Completed Column */}
+        <Column status="completed" title="Completed" count={getTasksByStatus('completed').length} />
       </div>
       
       {/* Quick help text */}

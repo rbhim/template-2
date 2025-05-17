@@ -449,28 +449,6 @@ export default function ProjectBoard({ projects, onUpdateProjects, teamMembers =
         </div>
       )}
 
-      {/* Dashboard Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg p-4 shadow-sm">
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Projects</h3>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">{projects.length}</p>
-        </div>
-        <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg p-4 shadow-sm">
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">On Track</h3>
-          <p className="text-2xl font-bold text-green-600">{projects.filter(p => p.status === 'on-track').length}</p>
-        </div>
-        <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg p-4 shadow-sm">
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">At Risk / Delayed</h3>
-          <p className="text-2xl font-bold text-red-600">
-            {projects.filter(p => p.status === 'at-risk' || p.status === 'delayed').length}
-          </p>
-        </div>
-        <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg p-4 shadow-sm">
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Completed</h3>
-          <p className="text-2xl font-bold text-purple-600">{projects.filter(p => p.status === 'completed').length}</p>
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 gap-6">
         {sortedProjects.map((project) => (
           <ProjectItem 
