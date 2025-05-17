@@ -22,7 +22,7 @@ export default function GanttChart({ projects }: GanttChartProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'all'>('all');
   const [priorityFilter, setPriorityFilter] = useState<ProjectPriority | 'all'>('all');
-  const [showFilters, setShowFilters] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
   const [showTodayLine, setShowTodayLine] = useState(true);
   const [todayLineHeight, setTodayLineHeight] = useState(0);
 

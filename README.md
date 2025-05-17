@@ -65,11 +65,14 @@ A modern project management dashboard for traffic/transportation engineering con
 - For AI/LLM features, uses Vercel AI SDK and streaming APIs.
 
 ## Recent Updates
-- Added collapsible filters section to maximize dashboard space
+- Added collapsible filters section to maximize dashboard space (now defaulting to closed state)
 - Added drag-to-resize functionality for Gantt chart timeline bars
 - Implemented system notes for project documentation without author attribution
 - Enhanced Recent Projects sidebar tracking using database timestamps
 - Added visual feedback for timeline interactions 
+- Fixed team management scrolling to ensure all staff cards are fully visible
+- Added sign-in components for Google and Microsoft authentication
+- Improved scrolling container heights and padding for better user experience
 
 ---
 

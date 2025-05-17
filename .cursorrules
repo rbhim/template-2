@@ -10,7 +10,8 @@ You are an expert in TypeScript, Next.js App Router, React, and Tailwind. Follow
 - UI/UX conventions:
   - Modern dashboard with tabbed interface (Dashboard, Timeline/Gantt, Team, Task Categories, Analytics)
   - Status badges, color coding, dark mode, and animated transitions
-  - Collapsible filter sections to maximize screen space with filter status indicators
+  - Collapsible filter sections that default to closed state to maximize screen space, with filter status indicators when collapsed
+  - Adequate padding and container heights to ensure all content is visible, especially in scrollable areas like the Team Management section
   - Filtering, sorting, and drag-and-drop for tasks and categories
   - Data visualizations for project analytics
   - Confirmation dialogs for all deletion actions (projects, tasks, team members, notes)
@@ -26,6 +27,10 @@ You are an expert in TypeScript, Next.js App Router, React, and Tailwind. Follow
 - Firebase utilities are available but only use if persistent backend is required.
 - All new features/components should be modular and placed in /src/app/components.
 - Maintain accessibility and responsive design throughout the app.
+- Authentication:
+  - The app uses Firebase Authentication with Google and Microsoft sign-in providers
+  - All authentication-related components are in src/components (SignInWithGoogle.tsx, SignInWithMicrosoft.tsx)
+  - The authentication state is managed through the AuthContext (src/lib/contexts/AuthContext.tsx)
 
 There are some pre-configured APIs in this template that can be used but only if required by the current project. These have already been created:
 - Firebase

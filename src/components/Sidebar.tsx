@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { Project } from '../lib/types';
+import { useAuth } from '../lib/hooks/useAuth';
 
 interface SidebarProps {
   activeTab: 'dashboard' | 'gantt' | 'teams';
@@ -12,6 +13,7 @@ interface SidebarProps {
   recentProjects?: Project[];
   upcomingDeadlines?: Project[];
   onProjectSelect?: (project: Project) => void;
+  signOut?: () => Promise<void>;
 }
 
 export default function Sidebar({ 
@@ -21,9 +23,21 @@ export default function Sidebar({
   toggleDarkMode,
   recentProjects = [],
   upcomingDeadlines = [],
-  onProjectSelect = () => {}
+  onProjectSelect = () => {},
+  signOut = async () => {}
 }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const { user } = useAuth();
+
+  const toggleUserMenu = () => {
+    setShowUserMenu(!showUserMenu);
+  };
+
+  // Function to safely close the user menu when clicking outside
+  const closeUserMenu = () => {
+    setShowUserMenu(false);
+  };
 
   return (
     <div 
@@ -48,7 +62,7 @@ export default function Sidebar({
         </div>
         
         {/* Collapse toggle button */}
-        <button 
+        <button
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="absolute -right-4 top-10 w-8 h-8 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-all hover:scale-110 z-10"
           aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
@@ -64,7 +78,7 @@ export default function Sidebar({
           )}
         </button>
       </div>
-      
+
       {/* Navigation */}
       <div className="flex-1 overflow-y-auto py-6 px-4 bg-pattern">
         <nav className="space-y-3">
@@ -292,13 +306,14 @@ export default function Sidebar({
           </div>
         </div>
       )}
-
+      
       {/* Bottom Actions Section */}
-      <div className="border-t border-gray-200 dark:border-gray-700 py-4 px-4 flex justify-center">
+      <div className="border-t border-gray-200 dark:border-gray-700 py-4 px-4 flex justify-between items-center">
         <button
           onClick={toggleDarkMode}
           className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 flex items-center justify-center"
           aria-label="Toggle dark mode"
+          title="Toggle dark mode"
         >
           {isDarkMode ? (
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -318,6 +333,76 @@ export default function Sidebar({
             </svg>
           )}
         </button>
+        
+        {/* User Profile with Dropdown */}
+        <div className="relative">
+          <button
+            onClick={toggleUserMenu}
+            className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-2'} rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 p-1 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500`}
+            aria-expanded={showUserMenu}
+            aria-haspopup="true"
+            title={`${user?.displayName || 'User'} - Click to sign out`}
+          >
+            <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-sm font-medium text-gray-700 dark:text-gray-300 relative">
+              {user?.photoURL ? (
+                <img 
+                  src={user.photoURL} 
+                  alt={user.displayName || "User profile"} 
+                  className="w-full h-full object-cover"
+                />
+              ) : user?.displayName ? (
+                <span>{user.displayName.charAt(0).toUpperCase()}</span>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                </svg>
+              )}
+            </div>
+            {!isCollapsed && (
+              <>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate max-w-[100px]">
+                  {user?.displayName || user?.email?.split('@')[0] || 'User'}
+                </span>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </>
+            )}
+          </button>
+          
+          {/* Dropdown Menu */}
+          {showUserMenu && (
+            <div 
+              className={`absolute ${isCollapsed ? 'right-0' : 'right-0'} mt-2 w-48 rounded-md shadow-lg py-1 bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 z-10`}
+              role="menu"
+              aria-orientation="vertical"
+              aria-labelledby="user-menu"
+            >
+              <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{user?.displayName || 'User'}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
+              </div>
+              
+              <button
+                onClick={() => {
+                  signOut();
+                  closeUserMenu();
+                }}
+                className="w-full block px-4 py-2 text-sm text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                role="menuitem"
+              >
+                <div className="flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                  </svg>
+                  Sign Out
+                </div>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Copyright Notice - Moved to bottom */}

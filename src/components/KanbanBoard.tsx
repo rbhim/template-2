@@ -18,9 +18,12 @@ interface KanbanBoardProps {
   tasks: Task[];
   teamMembers: TeamMember[];
   onTasksUpdate: (updatedTasks: Task[]) => void;
+  onAddTask?: (taskName: string) => void;
+  onDeleteTask?: (taskId: string) => void;
+  searchTerm?: string;
 }
 
-export default function KanbanBoard({ tasks, teamMembers, onTasksUpdate }: KanbanBoardProps) {
+export default function KanbanBoard({ tasks, teamMembers, onTasksUpdate, onAddTask, onDeleteTask, searchTerm = '' }: KanbanBoardProps) {
   const [kanbanTasks, setKanbanTasks] = useState<KanbanTask[]>([]);
   const [draggedTask, setDraggedTask] = useState<KanbanTask | null>(null);
   const [draggedOverTask, setDraggedOverTask] = useState<KanbanTask | null>(null);
@@ -269,6 +272,15 @@ export default function KanbanBoard({ tasks, teamMembers, onTasksUpdate }: Kanba
   const handleAddTask = (status: TaskStatus) => {
     if (!newTaskName.trim()) return;
     
+    if (onAddTask) {
+      // If the parent provided an add task handler, use it
+      onAddTask(newTaskName);
+      setNewTaskName('');
+      setAddingToColumn(null);
+      return;
+    }
+    
+    // Otherwise handle internally
     const newTask: KanbanTask = {
       id: Date.now().toString(),
       name: newTaskName,
@@ -363,6 +375,14 @@ export default function KanbanBoard({ tasks, teamMembers, onTasksUpdate }: Kanba
 
     // Show confirmation dialog for task deletion
     const handleDeleteClick = () => {
+      if (onDeleteTask) {
+        // If the parent provided a delete task handler, use it
+        onDeleteTask(task.id);
+        setIsMenuOpen(false);
+        return;
+      }
+      
+      // Otherwise handle internally
       setTaskToDelete(task);
       setIsDeleteDialogOpen(true);
       setIsMenuOpen(false);

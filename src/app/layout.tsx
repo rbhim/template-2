@@ -1,12 +1,13 @@
 import "./globals.css";
 import { Inter } from "next/font/google";
 import Script from "next/script";
+import { AuthProvider } from "../lib/contexts/AuthContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "Project Management Portal",
-  description: "Track and manage traffic engineering consulting projects",
+  title: "TraffMobility Engineering - Project Management Portal",
+  description: "Track and manage transportation engineering consulting projects",
 };
 
 export default function RootLayout({
@@ -17,7 +18,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} bg-white text-gray-900`}>
-        {children}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
         
         {/* Script to suppress Grammarly extension warnings */}
         <Script id="suppress-grammarly" strategy="afterInteractive">

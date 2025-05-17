@@ -5,9 +5,11 @@ import ProjectBoard from "../components/ProjectBoard";
 import GanttChart from "../components/GanttChart";
 import TeamSection from "../components/TeamSection";
 import Sidebar from "../components/Sidebar";
+import LandingPage from "../components/LandingPage";
 import { Project, Task, TeamMember } from "../lib/types";
 import StatsCard from "./components/StatsCard";
 import Toast from "../components/Toast";
+import { useAuth } from '../lib/hooks/useAuth';
 import { BriefcaseIcon, CheckCircleIcon, ExclamationTriangleIcon, ClipboardIcon } from '@heroicons/react/24/outline';
 import { getAllProjects, addProject, updateProject, deleteProject, batchAddProjects } from '../lib/firebase/projectService';
 import { getAllTeamMembers, addTeamMember, updateTeamMember, deleteTeamMember } from '../lib/firebase/teamService';
@@ -178,6 +180,7 @@ const DEMO_PROJECTS: Project[] = [
 ];
 
 export default function Home() {
+  const { user, loading: authLoading, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'gantt' | 'teams'>('dashboard');
   const [projects, setProjects] = useState<Project[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
@@ -510,6 +513,24 @@ export default function Home() {
     }
   };
 
+  // If authentication is still loading, show a loading spinner
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-white dark:bg-gray-900">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="mt-4 text-gray-700 dark:text-gray-300">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // If user is not authenticated, show landing page
+  if (!user) {
+    return <LandingPage />;
+  }
+
+  // If data is still loading, show loading spinner
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-white dark:bg-gray-900">
@@ -541,6 +562,7 @@ export default function Home() {
         recentProjects={recentProjects}
         upcomingDeadlines={upcomingDeadlines}
         onProjectSelect={handleProjectView}
+        signOut={signOut}
       />
       
       {/* Main Content */}
@@ -548,31 +570,31 @@ export default function Home() {
         <div className="sticky top-0 z-20 bg-white dark:bg-gray-900 shadow-md pt-2 pb-2 px-8">
           {/* Stats Cards - Moved up by removing title */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-            <StatsCard
+                <StatsCard
               icon={<svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>}
-              label="Total Projects"
-              value={projects.length}
-              colorClass="text-blue-600"
-            />
-            <StatsCard
+                  label="Total Projects"
+                  value={projects.length}
+                  colorClass="text-blue-600"
+                />
+                <StatsCard
               icon={<svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
-              label="On Track"
-              value={projects.filter(p => p.status === 'on-track').length}
-              colorClass="text-green-600"
-            />
-            <StatsCard
+                  label="On Track"
+                  value={projects.filter(p => p.status === 'on-track').length}
+                  colorClass="text-green-600"
+                />
+                <StatsCard
               icon={<svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>}
-              label="At Risk / Delayed"
-              value={projects.filter(p => p.status === 'at-risk' || p.status === 'delayed').length}
-              colorClass="text-red-600"
-            />
-            <StatsCard
+                  label="At Risk / Delayed"
+                  value={projects.filter(p => p.status === 'at-risk' || p.status === 'delayed').length}
+                  colorClass="text-red-600"
+                />
+                <StatsCard
               icon={<svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>}
-              label="Completed"
-              value={projects.filter(p => p.status === 'completed').length}
-              colorClass="text-purple-600"
-            />
-          </div>
+                  label="Completed"
+                  value={projects.filter(p => p.status === 'completed').length}
+                  colorClass="text-purple-600"
+                />
+              </div>
         </div>
         
         {/* Scrollable Content Area */}
@@ -590,16 +612,16 @@ export default function Home() {
           {activeTab === 'gantt' && (
             <div className="animate-slide-in h-full">
               <GanttChart projects={projects} />
-            </div>
+        </div>
           )}
           {activeTab === 'teams' && (
             <div className="animate-slide-in h-full">
-              <TeamSection 
-                projects={projects}
-                initialTeamMembers={teamMembers}
-                onUpdateTeamMembers={handleUpdateTeamMembers}
+            <TeamSection 
+              projects={projects}
+              initialTeamMembers={teamMembers}
+              onUpdateTeamMembers={handleUpdateTeamMembers}
                 onUpdateProjects={handleUpdateProjects}
-              />
+            />
             </div>
           )}
         </div>
