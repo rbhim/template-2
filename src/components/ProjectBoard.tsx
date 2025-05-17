@@ -462,7 +462,7 @@ export default function ProjectBoard({ projects, onUpdateProjects, teamMembers, 
         {/* Show search results count when searching */}
         {searchTerm && showFilters && (
           <div className="text-sm text-gray-600 dark:text-gray-400 mt-4 animate-fade-in">
-            Found {filteredProjects.length} project{filteredProjects.length !== 1 ? 's' : ''} matching "{searchTerm}"
+            Found {filteredProjects.length} project{filteredProjects.length !== 1 ? 's' : ''} matching &quot;{searchTerm}&quot;
           </div>
         )}
 
