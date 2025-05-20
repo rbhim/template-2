@@ -256,10 +256,18 @@ export default function ProjectItem({ project, onUpdate, onDelete, teamMembers =
   const notesCount = project.notes?.length || 0;
 
   const handleTasksUpdate = (updatedTasks: any[]) => {
-    onUpdate({
+    console.log('Updating project tasks for project ID:', project.id);
+    
+    // Make sure we preserve the exact project ID for Firebase
+    const updatedProject = {
       ...project,
       tasks: updatedTasks,
-    });
+      // Ensure ID is preserved exactly
+      id: project.id
+    };
+    
+    // Send update to parent component (which will handle Firebase update)
+    onUpdate(updatedProject);
   };
 
   // New function to handle delete confirmation
@@ -633,6 +641,33 @@ export default function ProjectItem({ project, onUpdate, onDelete, teamMembers =
               onAddTask={handleAddTask}
               onDeleteTask={handleDeleteTask}
               searchTerm={searchTerm}
+              projectNotes={project.notes || []}
+              onAddNote={(content, authorId) => {
+                // Create new note with timestamp
+                const newNote: Note = {
+                  id: Date.now().toString(),
+                  content,
+                  timestamp: new Date().toISOString(),
+                  // Only include authorId field if provided
+                  ...(authorId ? { authorId } : {})
+                };
+                
+                // Add to project notes
+                const updatedNotes = [...(project.notes || []), newNote];
+                
+                onUpdate({
+                  ...project,
+                  notes: updatedNotes,
+                });
+              }}
+              onDeleteNote={(noteId) => {
+                const updatedNotes = (project.notes || []).filter(note => note.id !== noteId);
+                
+                onUpdate({
+                  ...project,
+                  notes: updatedNotes,
+                });
+              }}
             />
           </div>
           

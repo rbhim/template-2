@@ -20,6 +20,159 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+/* Enhanced drag-and-drop styles */
+.is-dragging-task {
+  cursor: grabbing !important;
+}
+
+.is-dragging-task * {
+  cursor: grabbing !important;
+}
+
+/* Force cursor to default when drag ends */
+.drag-ended, .drag-ended * {
+  cursor: default !important;
+}
+
+/* Make task cards obviously draggable */
+.task-card {
+  cursor: grab !important;
+  touch-action: none;
+  user-select: none;
+  will-change: transform;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.task-card:hover {
+  box-shadow: 0 4px 8px -2px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+  border-color: #60a5fa !important;
+  z-index: 10;
+}
+
+.task-card:active {
+  cursor: grabbing !important;
+  transform: rotate(2deg) scale(1.02);
+  border-color: #3b82f6 !important;
+}
+
+/* Immediate visual feedback for dragged task */
+.task-being-dragged {
+  opacity: 0.7 !important;
+  transform: scale(1.05) rotate(2deg) !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+  border-color: #3b82f6 !important;
+  z-index: 50 !important;
+  position: relative;
+}
+
+/* Highlight drop targets */
+[data-kanban-column] {
+  transition: all 0.2s ease-in-out;
+  cursor: default;
+}
+
+[data-kanban-column]:hover {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3) !important;
+}
+
+/* Fullscreen Kanban Board */
+.kanban-board-container {
+  position: relative;
+  width: 100%;
+  transition: all 0.3s ease;
+}
+
+.kanban-board-container.fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  padding: 16px 16px 16px 16px;
+  background-color: #fff;
+  overflow: hidden;
+  border-radius: 0;
+}
+
+.dark .kanban-board-container.fullscreen {
+  background-color: #0f172a;
+}
+
+/* Improve column sizing in fullscreen */
+.kanban-board-container.fullscreen .flex-col {
+  margin-top: 0;
+}
+
+.kanban-board-container.fullscreen .flex.md\:flex-row {
+  height: calc(100vh - 80px);
+  margin-top: 8px;
+  padding-bottom: 0;
+  gap: 12px;
+  overflow-y: hidden;
+  align-items: stretch;
+}
+
+.kanban-board-container.fullscreen .flex-1 {
+  flex: 1 1 0%;
+  min-width: 0;
+  max-width: none;
+}
+
+.kanban-board-container.fullscreen [data-kanban-column] {
+  height: calc(100vh - 140px);
+  max-height: none;
+  overflow-y: auto;
+  border-width: 1px;
+  margin-bottom: 0;
+}
+
+.kanban-board-container.fullscreen .task-card {
+  margin-bottom: 8px;
+}
+
+.kanban-board-container.fullscreen .mb-4 {
+  margin-bottom: 12px;
+}
+
+/* Compact view styles */
+.compact-view .task-card {
+  padding: 8px 12px;
+  margin-bottom: 6px;
+}
+
+.compact-view .task-card h4 {
+  font-size: 0.8rem;
+  line-height: 1.1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.compact-view [data-kanban-column] {
+  padding: 8px;
+}
+
+.kanban-board-container.fullscreen .compact-view [data-kanban-column] {
+  padding: 10px;
+}
+
+/* Fullscreen column titles */
+.kanban-board-container.fullscreen .column-header {
+  position: sticky;
+  top: 0;
+  background-color: inherit;
+  z-index: 10;
+  margin-bottom: 8px;
+  padding: 8px 0;
+}
+
+/* Prevent body scrolling when in fullscreen mode */
+body.kanban-fullscreen-mode {
+  overflow: hidden;
+}
+
 /* Ensure text is visible against various backgrounds */
 .bg-gray-50, .bg-white {
   color: #000;
@@ -72,4 +225,13 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+}
+
+/* Ensure pointer events work properly for drag-and-drop */
+[data-kanban-column] * {
+  pointer-events: auto;
+}
+
+[data-kanban-column] {
+  pointer-events: auto;
 }
