@@ -384,13 +384,13 @@ export default function KanbanBoard({
         
         document.body.appendChild(ghostElement);
         e.dataTransfer.setDragImage(ghostElement, 20, 20);
-        
-        setTimeout(() => {
+      
+      setTimeout(() => {
           document.body.removeChild(ghostElement);
-        }, 0);
+      }, 0);
       } catch (error) {
         console.log('Custom drag image not supported');
-      }
+    }
     }
     
     // Immediately apply visual feedback
@@ -499,8 +499,8 @@ export default function KanbanBoard({
     if (draggedTask.status !== dropTarget.status) {
       updatedTasks = updatedTasks.map(task => {
         if (task.id === draggedTask.id) {
-          return {
-            ...task,
+          return { 
+            ...task, 
             status: dropTarget.status,
             // Add timestamp when status changes
             statusTimestamp: new Date().toISOString()
@@ -690,21 +690,21 @@ export default function KanbanBoard({
       onDeleteTask(taskToDelete.id);
     } else {
       // Otherwise handle internally
-      // Filter out the task to delete
-      const updatedTasks = kanbanTasks.filter(t => t.id !== taskToDelete.id);
-      
-      // Update the order of remaining tasks in the same column
-      const reorderedTasks = updatedTasks
-        .map((t, idx) => {
-          // Only reorder tasks in the same column as the deleted task
-          if (t.status === taskToDelete.status) {
-            return { ...t, order: idx + 1 };
-          }
-          return t;
-        });
-      
-      setKanbanTasks(reorderedTasks);
-      updateOriginalTasks(reorderedTasks);
+    // Filter out the task to delete
+    const updatedTasks = kanbanTasks.filter(t => t.id !== taskToDelete.id);
+    
+    // Update the order of remaining tasks in the same column
+    const reorderedTasks = updatedTasks
+      .map((t, idx) => {
+        // Only reorder tasks in the same column as the deleted task
+        if (t.status === taskToDelete.status) {
+          return { ...t, order: idx + 1 };
+        }
+        return t;
+      });
+    
+    setKanbanTasks(reorderedTasks);
+    updateOriginalTasks(reorderedTasks);
     }
     
     // Reset dialog state
@@ -802,14 +802,15 @@ export default function KanbanBoard({
             
             <div className="relative" ref={menuRef}>
               <button 
-                className="w-6 h-6 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                className="w-8 h-8 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                 onClick={(e) => {
                   e.stopPropagation();
                   setIsMenuOpen(!isMenuOpen);
                 }}
                 style={{ cursor: 'pointer' }}
+                aria-label="Task menu"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
                 </svg>
               </button>
@@ -819,53 +820,53 @@ export default function KanbanBoard({
                     <p className="px-4 py-2 text-sm text-gray-700 dark:text-gray-200 font-medium">Move to:</p>
                     
                     {/* Stage options instead of team members */}
-                    <button 
-                      className={`flex items-center w-full px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 ${task.status === 'todo' ? 'bg-gray-100 dark:bg-gray-600 text-blue-600 dark:text-blue-300' : 'text-gray-700 dark:text-gray-200'}`}
+                      <button 
+                      className={`flex items-center w-full px-4 py-3 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 ${task.status === 'todo' ? 'bg-gray-100 dark:bg-gray-600 text-blue-600 dark:text-blue-300' : 'text-gray-700 dark:text-gray-200'}`}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleMoveToStage('todo');
                       }}
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                       </svg>
                       To Do
-                    </button>
+                      </button>
                     
                     <button 
-                      className={`flex items-center w-full px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 ${task.status === 'in-progress' ? 'bg-gray-100 dark:bg-gray-600 text-blue-600 dark:text-blue-300' : 'text-gray-700 dark:text-gray-200'}`}
+                      className={`flex items-center w-full px-4 py-3 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 ${task.status === 'in-progress' ? 'bg-gray-100 dark:bg-gray-600 text-blue-600 dark:text-blue-300' : 'text-gray-700 dark:text-gray-200'}`}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleMoveToStage('in-progress');
                       }}
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h.01M16 10a4 4 0 11-8 0 4 4 0 018 0z" />
                       </svg>
                       In Progress
                     </button>
                     
                     <button 
-                      className={`flex items-center w-full px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 ${task.status === 'review' ? 'bg-gray-100 dark:bg-gray-600 text-blue-600 dark:text-blue-300' : 'text-gray-700 dark:text-gray-200'}`}
+                      className={`flex items-center w-full px-4 py-3 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 ${task.status === 'review' ? 'bg-gray-100 dark:bg-gray-600 text-blue-600 dark:text-blue-300' : 'text-gray-700 dark:text-gray-200'}`}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleMoveToStage('review');
                       }}
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                       </svg>
                       Review
                     </button>
                     
                     <button 
-                      className={`flex items-center w-full px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 ${task.status === 'completed' ? 'bg-gray-100 dark:bg-gray-600 text-blue-600 dark:text-blue-300' : 'text-gray-700 dark:text-gray-200'}`}
+                      className={`flex items-center w-full px-4 py-3 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 ${task.status === 'completed' ? 'bg-gray-100 dark:bg-gray-600 text-blue-600 dark:text-blue-300' : 'text-gray-700 dark:text-gray-200'}`}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleMoveToStage('completed');
                       }}
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                       Completed
@@ -874,13 +875,13 @@ export default function KanbanBoard({
                     <div className="border-t border-gray-200 dark:border-gray-600 my-1"></div>
                     
                     <button 
-                      className="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-600"
+                      className="flex items-center w-full px-4 py-3 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-600"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDeleteClick();
                       }}
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                       </svg>
                       Delete task
@@ -923,6 +924,13 @@ export default function KanbanBoard({
         {isDraggedOver && dragDirection === 'below' && (
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-500 transform translate-y-1/2 rounded-full"></div>
         )}
+        
+        {/* Mobile hint to indicate card is draggable/movable */}
+        <div className="md:hidden absolute top-1 left-1 w-2 h-10 flex flex-col justify-center opacity-30">
+          <div className="w-1 h-1 rounded-full bg-gray-400 mb-1"></div>
+          <div className="w-1 h-1 rounded-full bg-gray-400 mb-1"></div>
+          <div className="w-1 h-1 rounded-full bg-gray-400"></div>
+        </div>
       </div>
     );
   };
@@ -970,8 +978,20 @@ export default function KanbanBoard({
     
     const colors = getColorClasses();
     
+    // Column ID for navigation
+    const columnId = `column-${status}`;
+    
     return (
-      <div className={`flex-1 min-w-[250px] ${isFullScreen ? '' : 'max-w-[350px]'} flex flex-col`}>
+      <div 
+        id={columnId}
+        className={`flex-1 min-w-[250px] ${isFullScreen ? '' : 'max-w-[350px]'} flex flex-col 
+          md:mb-0 mb-6 p-2 rounded-lg border-t-4 ${
+            status === 'todo' ? 'border-gray-400 dark:border-gray-500' :
+            status === 'in-progress' ? 'border-blue-400 dark:border-blue-500' :
+            status === 'review' ? 'border-yellow-400 dark:border-yellow-500' :
+            'border-green-400 dark:border-green-500'
+          }`}
+      >
         <div className={`column-header flex items-center justify-between mb-2 ${colors?.header} ${isFullScreen ? `${colors?.bgNormal} py-2 px-2 rounded-t` : ''}`}>
           <h3 className="text-md font-semibold flex items-center">
             {title} 
@@ -982,15 +1002,15 @@ export default function KanbanBoard({
           
           {/* Only show add button in Todo column */}
           {canAddTasks && (
-            <button 
-              onClick={() => setAddingToColumn(status)}
-              className="w-6 h-6 rounded-full hover:bg-white dark:hover:bg-gray-700 flex items-center justify-center"
+          <button 
+            onClick={() => setAddingToColumn(status)}
+              className="w-8 h-8 rounded-full hover:bg-white dark:hover:bg-gray-700 flex items-center justify-center"
               title="Add Task"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-            </button>
+          >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+          </button>
           )}
         </div>
         
@@ -1017,13 +1037,13 @@ export default function KanbanBoard({
             />
             <button
               onClick={() => handleAddTask(status)}
-              className="bg-blue-600 text-white px-3 rounded-r"
+              className="bg-blue-600 text-white px-3 rounded-r h-full flex items-center"
             >
               Add
             </button>
             <button
               onClick={() => setAddingToColumn(null)}
-              className="ml-1 text-gray-500 hover:text-red-500"
+              className="ml-1 text-gray-500 hover:text-red-500 p-2"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1080,7 +1100,7 @@ export default function KanbanBoard({
         onConfirm={confirmDeleteTask}
         onCancel={cancelDeleteTask}
       />
-      
+
       {/* Confirmation Dialog for note deletion */}
       <ConfirmationDialog
         isOpen={isDeleteNoteDialogOpen}
@@ -1140,23 +1160,44 @@ export default function KanbanBoard({
         </div>
       </div>
 
+      {/* Mobile column selector */}
+      <div className="md:hidden mb-4">
+        <select 
+          className="w-full p-2 border rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+          onChange={(e) => {
+            // Scroll to the selected column
+            const columnId = e.target.value;
+            const element = document.getElementById(columnId);
+            if (element) {
+              element.scrollIntoView({ behavior: 'smooth' });
+            }
+          }}
+        >
+          <option value="column-todo">To Do ({getTasksByStatus('todo').length})</option>
+          <option value="column-in-progress">In Progress ({getTasksByStatus('in-progress').length})</option>
+          <option value="column-review">Review ({getTasksByStatus('review').length})</option>
+          <option value="column-completed">Completed ({getTasksByStatus('completed').length})</option>
+        </select>
+      </div>
+
       {/* Main content container that scrolls as one unit in fullscreen mode */}
       <div className={`${isFullScreen ? 'flex-grow' : ''}`}>
         {/* Task columns */}
-        <div className={`flex flex-col md:flex-row gap-4 pb-4 ${isFullScreen ? 'h-auto' : 'min-h-[500px]'} ${isCompactView ? 'compact-view' : ''}`}>
-          {/* Todo Column */}
-          <Column status="todo" title="To Do" count={getTasksByStatus('todo').length} />
-          
-          {/* In Progress Column */}
-          <Column status="in-progress" title="In Progress" count={getTasksByStatus('in-progress').length} />
-          
-          {/* Review Column */}
-          <Column status="review" title="Review" count={getTasksByStatus('review').length} />
-          
-          {/* Completed Column */}
-          <Column status="completed" title="Completed" count={getTasksByStatus('completed').length} />
-        </div>
+        <div className={`flex flex-col md:flex-row gap-4 pb-4 ${isFullScreen ? 'h-auto' : 'min-h-[500px]'} ${isCompactView ? 'compact-view' : ''} 
+          ${isFullScreen ? '' : 'overflow-x-auto md:overflow-visible touch-pan-x'}`}>
+        {/* Todo Column */}
+        <Column status="todo" title="To Do" count={getTasksByStatus('todo').length} />
         
+        {/* In Progress Column */}
+        <Column status="in-progress" title="In Progress" count={getTasksByStatus('in-progress').length} />
+        
+        {/* Review Column */}
+        <Column status="review" title="Review" count={getTasksByStatus('review').length} />
+        
+        {/* Completed Column */}
+        <Column status="completed" title="Completed" count={getTasksByStatus('completed').length} />
+      </div>
+      
         {/* Notes section in full-screen mode */}
         {isFullScreen && renderNotesSection()}
       </div>
@@ -1167,7 +1208,8 @@ export default function KanbanBoard({
         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-          Drag tasks directly to move them between columns
+          <span className="hidden md:inline">Drag tasks directly to move them between columns</span>
+          <span className="md:hidden">Tap task menu to move between columns</span>
       </div>
       )}
 
@@ -1202,6 +1244,35 @@ export default function KanbanBoard({
         .compact-view .task-card {
           padding: 0.5rem;
           margin-bottom: 0.5rem;
+        }
+        
+        /* Mobile styles */
+        @media (max-width: 768px) {
+          .kanban-board-container {
+            padding: 0.5rem;
+          }
+          
+          .kanban-board-container.fullscreen {
+            padding: 0.75rem;
+          }
+          
+          .task-card {
+            touch-action: pan-y;
+            min-height: 60px; /* Larger touch target */
+          }
+          
+          /* Improve touch targets */
+          button {
+            min-height: 36px;
+            min-width: 36px;
+          }
+          
+          /* Make column width full on mobile */
+          .kanban-board-container > div > div > div {
+            min-width: 100% !important;
+            max-width: 100% !important;
+            margin-bottom: 1rem;
+          }
         }
       `}</style>
     </div>

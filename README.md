@@ -24,6 +24,15 @@ A modern project management dashboard for traffic/transportation engineering con
   - Unsaved changes protection when canceling forms
   - Responsive, accessible, and visually appealing interface
   - Animated transitions and hover effects
+- **Kanban Board:**
+  - Visual task management with drag-and-drop support
+  - Color-coded columns for different task statuses
+  - Task cards with team member assignments and timestamps
+  - Compact and full-screen viewing modes
+  - Mobile-optimized interface with touch-friendly controls
+  - Quick task movement between columns via menu
+  - Project notes integration in full-screen mode
+  - Status change tracking with timestamps
 
 ## Tech Stack
 - **Next.js 14 App Router** (React, SSR/SSG, API routes)
@@ -65,6 +74,13 @@ A modern project management dashboard for traffic/transportation engineering con
 - For AI/LLM features, uses Vercel AI SDK and streaming APIs.
 
 ## Recent Updates
+- Enhanced Kanban board with mobile-first design and touch optimizations:
+  - Added mobile column selector for easy navigation
+  - Implemented touch-friendly task cards with visual drag indicators
+  - Optimized menu interactions for touch devices
+  - Added compact view mode for better mobile experience
+  - Improved task movement between columns via menu system
+  - Enhanced visual feedback for drag and drop operations
 - Added collapsible filters section to maximize dashboard space (now defaulting to closed state)
 - Added drag-to-resize functionality for Gantt chart timeline bars
 - Implemented system notes for project documentation without author attribution
